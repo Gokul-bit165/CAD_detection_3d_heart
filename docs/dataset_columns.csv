@@ -1,0 +1,60 @@
+index,column_name,category,data_type,description,is_target
+1,Age,Demographic,Continuous,Patient age in years,False
+2,Weight,Demographic,Continuous,Body weight in kilograms,False
+3,Length,Demographic,Continuous,Body height in centimeters,False
+4,Sex,Demographic,Categorical,Biological sex (Male / Female),False
+5,BMI,Demographic,Continuous,Body Mass Index in kg/m²,False
+6,DM,Symptom/History,Binary,History of Diabetes Mellitus (Y/N),False
+7,HTN,Symptom/History,Binary,History of Hypertension (Y/N),False
+8,Current Smoker,Symptom/History,Binary,Current tobacco cigarette smoker (Y/N),False
+9,EX-Smoker,Symptom/History,Binary,Former cigarette smoker (Y/N),False
+10,FH,Symptom/History,Binary,Family history of premature CAD (Y/N),False
+11,Obesity,Symptom/History,Binary,Presence of clinical obesity (Y/N),False
+12,CRF,Symptom/History,Binary,Chronic Renal Failure history (Y/N),False
+13,CVA,Symptom/History,Binary,Cerebrovascular accident / Stroke history (Y/N),False
+14,Airway disease,Symptom/History,Binary,Chronic obstructive or reactive airway disease (Y/N),False
+15,Thyroid Disease,Symptom/History,Binary,History of thyroid gland disorder (Y/N),False
+16,CHF,Symptom/History,Binary,Congestive Heart Failure history (Y/N),False
+17,DLP,Symptom/History,Binary,Dyslipidemia history (Y/N),False
+18,BP,Physical Examination,Continuous,Systolic Blood Pressure in mmHg,False
+19,PR,Physical Examination,Continuous,Resting Pulse Rate in beats per minute,False
+20,Edema,Physical Examination,Binary,Presence of peripheral lower extremity edema (0/1),False
+21,Weak Peripheral Pulse,Physical Examination,Binary,Diminished peripheral arterial pulses (0/1),False
+22,Lung rales,Physical Examination,Binary,Auscultatory pulmonary crackles / rales (0/1),False
+23,Systolic Murmur,Physical Examination,Binary,Presence of cardiac systolic murmur (0/1),False
+24,Diastolic Murmur,Physical Examination,Binary,Presence of cardiac diastolic murmur (0/1),False
+25,Typical Chest Pain,Symptoms,Binary,Typical exertional substernal angina (0/1 or Y/N),False
+26,Dyspnea,Symptoms,Binary,Shortness of breath on exertion or rest (0/1 or Y/N),False
+27,Function Class,Symptoms,Ordinal,NYHA Functional Class (1 to 4),False
+28,Atypical,Symptoms,Binary,Atypical chest pain presentation (0/1 or Y/N),False
+29,Nonanginal,Symptoms,Binary,Non-anginal chest pain (0/1 or Y/N),False
+30,Exertional CP,Symptoms,Binary,Chest pain precipitated by physical exertion (0/1 or Y/N),False
+31,LowTH Ang,Symptoms,Binary,Low workload threshold angina (0/1 or Y/N),False
+32,Q Wave,ECG,Binary,Pathological Q waves on resting ECG (0/1),False
+33,St Elevation,ECG,Binary,ST segment elevation on resting ECG (0/1),False
+34,St Depression,ECG,Binary,ST segment depression on resting ECG (0/1),False
+35,Tinversion,ECG,Binary,T-wave inversion on resting ECG (0/1),False
+36,LVH,ECG,Binary,Left Ventricular Hypertrophy voltage criteria (0/1),False
+37,Poor R Progression,ECG,Binary,Poor R-wave progression across precordial leads (0/1),False
+38,BBB,ECG,Categorical,Bundle branch block (LBBB / RBBB / N),False
+39,FBS,Laboratory,Continuous,Fasting Blood Sugar level in mg/dL,False
+40,CR,Laboratory,Continuous,Serum Creatinine concentration in mg/dL,False
+41,TG,Laboratory,Continuous,Serum Triglycerides in mg/dL,False
+42,LDL,Laboratory,Continuous,Low-Density Lipoprotein cholesterol in mg/dL,False
+43,HDL,Laboratory,Continuous,High-Density Lipoprotein cholesterol in mg/dL,False
+44,BUN,Laboratory,Continuous,Blood Urea Nitrogen in mg/dL,False
+45,ESR,Laboratory,Continuous,Erythrocyte Sedimentation Rate in mm/hr,False
+46,HB,Laboratory,Continuous,Hemoglobin concentration in g/dL,False
+47,K,Laboratory,Continuous,Serum Potassium in mEq/L,False
+48,Na,Laboratory,Continuous,Serum Sodium in mEq/L,False
+49,WBC,Laboratory,Continuous,White Blood Cell count in cells/mcL,False
+50,Lymph,Laboratory,Continuous,Lymphocyte differential percentage (%),False
+51,Neut,Laboratory,Continuous,Neutrophil differential percentage (%),False
+52,PLT,Laboratory,Continuous,Platelet count (x10^3/mcL),False
+53,EF-TTE,Echocardiography,Continuous,Ejection Fraction via Transthoracic Echo (%),False
+54,Region RWMA,Echocardiography,Ordinal,Regional Wall Motion Abnormality score / count (0 to 4),False
+55,VHD,Echocardiography,Categorical,Valvular Heart Disease severity (N / mild / mod / severe),False
+56,LAD,Ground Truth Target,Binary,Left Anterior Descending stenosis >=50% (Stenosis/Normal),True
+57,LCX,Ground Truth Target,Binary,Left Circumflex Artery stenosis >=50% (Stenosis/Normal),True
+58,RCA,Ground Truth Target,Binary,Right Coronary Artery stenosis >=50% (Stenosis/Normal),True
+59,Cath,Ground Truth Target,Binary,Coronary Angiography overall CAD status (CAD/Normal),True
