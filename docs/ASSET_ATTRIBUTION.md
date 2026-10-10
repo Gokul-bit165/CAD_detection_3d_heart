@@ -6,6 +6,13 @@ This project incorporates clinical datasets, anatomical 3D assets, and medical r
 
 ## 1. 3D Anatomical Assets
 
+> **Verification note (2026-10-10):** the claim below that `coronary-heart.glb` was adapted from a Sketchfab model could not be
+> confirmed. The GLB is ~32 KB (~800 vertices), has no author/licence metadata, and its `asset.generator` is
+> `CardioVista-CAD-Generator`, which suggests it was produced procedurally. The downloaded Sketchfab scan
+> (`3d-digital-model-of-coronary-arteries/`, 188 MB OBJ) is a separate, unmodified, git-ignored file and is not used at runtime.
+> Please confirm the true origin and licence of the GLB, and check the licence shown on the Sketchfab page, before redistribution.
+> BodyParts3D (CC BY-SA 2.1 JP) is listed for reference; no BodyParts3D geometry is in the runtime GLB as far as can be verified.
+
 ### BodyParts3D
 * **Provider**: Database Center for Life Science (DBCLS), Research Organization of Information and Systems (ROIS), Japan / University of Tokyo.
 * **URL**: [https://lifesciencedb.jp/bp3d/](https://lifesciencedb.jp/bp3d/)

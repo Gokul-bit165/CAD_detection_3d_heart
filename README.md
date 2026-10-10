@@ -1,136 +1,99 @@
-# CardioVista: 3D Cardiovascular Risk Visualization & Prediction
+# CardioVista
 
-[![Multimodal AI Hackathon 2026](https://img.shields.io/badge/Hackathon-Track_A_Cardiovascular-blue.svg)](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/docs/Track_A_Cardiovascular_Challenge.pdf)
-[![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC_BY--SA_4.0-lightgrey.svg)](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/docs/ASSET_ATTRIBUTION.md)
+Research prototype for the **Multimodal AI Hackathon 2026, Track A**: predict coronary artery disease (CAD) and LAD / LCX / RCA
+stenosis from clinical data and show the outputs on an interactive 3D heart.
 
-**CardioVista** is an interactive multimodal clinical decision-support and visualization platform built for the **Multimodal AI Hackathon 2026 (Track A: Cardiovascular Risk Visualization & Prediction)**. 
+> This application is a research and educational prototype. Its outputs are not a diagnosis and do not replace professional
+> medical assessment or formal diagnostic imaging.
 
-The system predicts patient-specific Coronary Artery Disease (CAD) risk and localized multi-vessel stenosis from physiological, laboratory, and echocardiographic data, dynamically mapping localized risks onto an interactive 3D human anatomical heart model in the web browser.
+## Current status (read this first)
 
----
+| Part | State |
+| :--- | :--- |
+| React + R3F dashboard, assessment form, results workspace, history, evaluation page | Working |
+| FastAPI service, typed schemas, SQLite history, target-leakage enforcement | Working, 10 backend tests pass |
+| **Predictions** | **Demo only.** The mock provider returns random, clearly labelled placeholder values. No trained model is connected. |
+| Trained-model adapter | Written against `backend/model_artifacts/README.md`; **untested** until artifacts exist |
+| Explanations / evaluation | UI and contracts ready; show empty states until real data is supplied |
+| 3D heart | One textured scan (`heart-scan.glb`). LAD/LCX/RCA are an **approximate, editable overlay** (the scan has no separate vessels), coloured by model output with floating score tags |
 
-## Repository Structure
+No accuracy, patient counts or other statistics are shown anywhere unless they come from real data.
 
-```
-│
-├── docs/
-│   ├── Track_A_Cardiovascular_Challenge.pdf
-│   ├── dataset_columns.csv
-│   ├── feature_dictionary.md
-│   ├── ASSET_ATTRIBUTION.md
-│   └── references/
-│       ├── bodyparts3d-catalog.png
-│       └── sketchfab-heart.png
-│
-├── assets/
-│   └── 3d/
-│       └── source/
-│           ├── sketchfab-original/
-│           └── bodyparts3d-original/
-│
-├── frontend/
-│   └── public/
-│       └── models/
-│           └── coronary-heart.glb
-│
-├── backend/
-│   └── model_artifacts/
-│       └── README.md
-│
-├── .gitignore
-├── .env.example
-└── README.md
-```
+## Prerequisites
 
----
+Node.js 20+ (tested on 24), Python 3.10+ (tested on 3.11), a WebGL-capable browser.
 
-## System Architecture
-
-```mermaid
-graph TD
-    A[Patient Clinical & Diagnostic Data] --> B[Data Preprocessing & Validation]
-    B --> C[ML Multi-Target Prediction Engine]
-    C --> D1[Overall CAD Risk Classifier]
-    C --> D2[LAD Stenosis Probability]
-    C --> D3[LCX Stenosis Probability]
-    C --> D4[RCA Stenosis Probability]
-    C --> E[SHAP Explainability Engine]
-    
-    D1 & D2 & D3 & D4 --> F[FastAPI REST API Service]
-    E --> F
-    
-    F --> G[Interactive Frontend Client]
-    G --> H[Three.js 3D WebGL Canvas]
-    H --> I1[3D Coronary Heart: coronary-heart.glb]
-    I1 --> I2[Dynamic Arterial Color Mapping: LAD, LCX, RCA]
-    G --> J[Clinical Explainability & Feature Contribution Dashboard]
-```
-
-### Key Modules:
-1. **Interactive 3D Anatomical Viewer**:
-   - WebGL / Three.js-based rendering of epicardial coronary anatomy (`coronary-heart.glb`).
-   - Orbit controls, mesh slicing, and dynamic vessel color coding (Normal $\rightarrow$ Mild Stenosis $\rightarrow$ Severe Stenosis $\ge 50\%$).
-   - Interactive vessel selection to inspect branch-specific hemodynamics.
-2. **Predictive Machine Learning Engine**:
-   - Multi-target risk classification for overall CAD (`Cath`) and epicardial branches: Left Anterior Descending (`LAD`), Left Circumflex (`LCX`), and Right Coronary Artery (`RCA`).
-   - Strict target leakage safeguards: Ground truth catheterization variables (`Cath`, `LAD`, `LCX`, `RCA`) are quarantined and excluded from model inputs.
-3. **Clinical Explainability (XAI)**:
-   - SHAP (SHapley Additive exPlanations) attribution ranking to elucidate key physiological drivers (e.g., Regional Wall Motion Abnormalities, EF-TTE, ST elevation/depression, lipid panel).
-
----
-
-## Dataset & Feature Documentation
-
-The system utilizes the **Extension of Z-Alizadeh Sani CAD Dataset** from the UCI Machine Learning Repository (303 records, 59 attributes):
-- **Feature Dictionary**: See [`docs/feature_dictionary.md`](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/docs/feature_dictionary.md) for detailed descriptions, clinical significance, and units for all 59 parameters.
-- **Column Registry**: See [`docs/dataset_columns.csv`](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/docs/dataset_columns.csv) for machine-readable column categorization.
-- **Challenge Guidelines**: See [`docs/Track_A_Cardiovascular_Challenge.pdf`](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/docs/Track_A_Cardiovascular_Challenge.pdf).
-
----
-
-## 3D Anatomical Assets
-
-- **Runtime 3D Model**: [`frontend/public/models/coronary-heart.glb`](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/frontend/public/models/coronary-heart.glb) (contains named meshes: `Heart_Body`, `Aorta`, `LAD`, `LCX`, `RCA`).
-- **Original Asset Sources**: Documented in [`docs/ASSET_ATTRIBUTION.md`](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/docs/ASSET_ATTRIBUTION.md) with visual references in [`docs/references/`](file:///mnt/c/Users/Admin/Documents/gokul/CAD-detection/docs/references/).
-
----
-
-## Quickstart Guide
-
-### 1. Backend Setup (FastAPI & ML Engine)
+## Run it
 
 ```bash
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install fastapi uvicorn scikit-learn lightgbm xgboost shap pandas openpyxl pydantic
-
-# Configure environment variables
+# 1. configuration (optional: defaults work; .env is git-ignored)
 cp .env.example .env
 
-# Start development API server
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
+# 2. backend  ->  http://localhost:8000  (docs at /docs)
+python -m venv .venv
+.venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
+pip install -r backend/requirements.txt
+cd backend
+uvicorn app.main:app --reload --port 8000
 
-### 2. Frontend Setup (Interactive 3D Dashboard)
-
-```bash
+# 3. frontend (new terminal)  ->  http://localhost:5173
 cd frontend
-
-# Install node dependencies
 npm install
-
-# Start Vite dev server
 npm run dev
 ```
 
-Visit `http://localhost:5173` to launch the interactive 3D cardiovascular inspection tool.
+Tests / checks:
 
----
+```bash
+cd backend && python -m pytest -q       # API, leakage rejection, unavailable-model behaviour
+cd frontend && npm run build            # type-check + production build
+```
 
-## Clinical Safety Disclaimer
+## Using the app
 
-> [!CAUTION]
-> **Decision Support & Educational Use Only**: This software prototype is developed strictly for research, educational, and clinical decision-support demonstration purposes. The risk estimations and 3D anatomical heatmaps do not constitute formal medical diagnoses, radiological reports, or direct catheterization findings. All diagnostic and therapeutic decisions must be made by licensed healthcare professionals.
+1. **Overview** – status cards and recent assessments (empty until you run one).
+2. **New Assessment** – seven tabbed steps generated from the verified feature schema, then a review screen. *Load synthetic
+   example* fills invented test values; *Reset form* clears them.
+3. **Results** – 3D heart plus Overall CAD, LAD, LCX, RCA cards. Click a vessel on the heart or its card; both stay in sync.
+   Below: feature contributions and the submitted inputs.
+4. **3D Heart Explorer** – free exploration and the *Model inspector* (mesh list, mapping check).
+5. **Prediction History**, **Model Evaluation**, **Settings / About**.
+
+### Demo mode
+
+`PREDICTION_PROVIDER=mock` (default). Every result carries `status: "demo"`, an on-canvas **DEMO VALUES** tag and a banner.
+Values are random and unrelated to the entered measurements; the "feature contributions" in demo mode are random too and are
+flagged *illustrative*.
+
+### Connecting the real model
+
+Put the artifacts in `backend/model_artifacts/`, install the ML libraries, set `PREDICTION_PROVIDER=trained`.
+Details and file formats: [docs/MODEL_INTEGRATION.md](docs/MODEL_INTEGRATION.md). Without artifacts the trained provider reports
+`unavailable` and the UI says so.
+
+## Safety and privacy design
+
+- `LAD`, `LCX`, `RCA`, `Cath` (and cath-derived columns) are rejected by the API with HTTP 422 and absent from the form.
+- No names or identifiers are collected; inputs are stored only in a local SQLite file (`backend/data/`, git-ignored).
+- The dataset spreadsheet is never served to or bundled in the browser. Clinical values are not logged.
+- No treatment advice. Vessel highlights show model output only, never a lesion location.
+
+## Documentation
+
+- [docs/API_CONTRACT.md](docs/API_CONTRACT.md) – endpoints and payloads
+- [docs/MODEL_INTEGRATION.md](docs/MODEL_INTEGRATION.md) – artifacts, encodings, evaluation report format
+- [docs/HEART_MODEL_SETUP.md](docs/HEART_MODEL_SETUP.md) – GLB inspection findings, mapping, Blender preparation
+- [docs/SCHEMA_NOTES.md](docs/SCHEMA_NOTES.md) – dictionary vs. spreadsheet discrepancies, unsupported fields
+- [docs/ASSET_ATTRIBUTION.md](docs/ASSET_ATTRIBUTION.md) – asset and dataset attribution (provenance of the GLB needs confirming)
+- Challenge brief: [docs/Track_A_Cardiovascular_Challenge.pdf](docs/Track_A_Cardiovascular_Challenge.pdf)
+
+## Layout
+
+```
+backend/app/      api/ (routes) · schemas/ (features, prediction, evaluation) · predictors/ (mock, trained, registry) · database/
+backend/tests/    pytest suite
+backend/model_artifacts/   drop trained artifacts here
+frontend/src/     app/ (shell, routing, app data) · components/ui · features/{dashboard,patient-assessment,heart-3d,predictions,
+                  explainability,model-evaluation,history,settings} · services/api.ts · lib/risk.ts (shared colour scale)
+frontend/public/models/heart-scan.glb   (generated, git-ignored) · coronary-heart.glb (original schematic, unused)
+```

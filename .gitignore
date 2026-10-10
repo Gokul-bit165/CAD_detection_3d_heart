@@ -61,3 +61,16 @@ Thumbs.db
 # Large Model Binary Artifacts (optional local backups)
 backend/model_artifacts/*.tar.gz
 backend/model_artifacts/*.zip
+
+# Local prediction history DB
+backend/data/
+*.db
+
+# Large raw 3D scan (188 MB, exceeds GitHub's 100 MB limit); keep locally
+3d-digital-model-of-coronary-arteries/
+
+# Scratch
+frontend/tsconfig.tsbuildinfo
+
+# Decimated scan GLB: licence of the Sketchfab source not yet verified
+frontend/public/models/heart-scan.glb
