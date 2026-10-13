@@ -19,6 +19,8 @@ This project incorporates clinical datasets, anatomical 3D assets, and medical r
 * **License**: Creative Commons Attribution-ShareAlike 2.1 Japan ([CC BY-SA 2.1 JP](https://creativecommons.org/licenses/by-sa/2.1/jp/))
 * **Usage**: Segmented organ models of the human circulatory system, thoracic cavity, aorta, coronary arterial tree, and cardiac chambers used in anatomical reference pipelines located in `assets/3d/source/bodyparts3d-original/`.
 
+* **Runtime coronary meshes**: `frontend/public/models/coronary/LAD/` (FMA74912, 3 OBJ), `LCX/` (FMA3895, FJ2649–FJ2654) and `RCA/` (FMA50039, 29 OBJ). LCX/RCA retrieved 2026-10-12 from `partof_BP3D_4.0_obj_99.zip` at dbarchive.biosciencedbc.jp, unmodified. Required attribution: "BodyParts3D, (c) The Database Center for Life Science licensed under CC Attribution-Share Alike 2.1 Japan". ShareAlike applies to derived material. See each folder's `manifest.json`.
+
 ### Sketchfab 3D Anatomical Models
 * **Source**: Sketchfab 3D Heart and Coronary Vessel meshes (`sketchfab-heart.png` reference).
 * **URL**: [https://sketchfab.com](https://sketchfab.com)

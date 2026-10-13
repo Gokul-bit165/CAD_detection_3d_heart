@@ -1,5 +1,5 @@
-import { Component, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { Html, OrbitControls, useProgress } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Activity, Info, Pause, Play, RotateCcw, X } from 'lucide-react'
@@ -10,8 +10,7 @@ import HeartModel, { type Risks } from './HeartModel'
 import type { SceneReport } from './inspect'
 import { MODEL_ATTRIBUTION, MODEL_URL, VESSEL_IDS } from './vesselConfig'
 import type { Vec3, VesselPaths } from './vesselPaths'
-import type { Bp3dMode, Placement } from './bp3dLad'
-import type { Bp3dState } from './useBp3dLad'
+import type { Bp3dViews } from './bp3dVessels'
 
 export interface HeartSceneProps {
   /** Vessel probabilities (0-1). Omit/null = no prediction: neutral anatomy. */
@@ -31,8 +30,10 @@ export interface HeartSceneProps {
   /** Vessel-placement mode: clicks on the heart add a point to this vessel. */
   editVessel?: VesselId | null
   onEditPoint?: (id: VesselId, p: Vec3) => void
-  /** Opt-in BodyParts3D LAD (default: seeded overlay). */
-  lad?: { mode: Bp3dMode; placement: Placement; color: string; onState?: (s: Bp3dState) => void }
+  /** Increment to reset the camera (and clear selection) from outside. */
+  resetSignal?: number
+  /** Opt-in per-vessel BodyParts3D meshes (default: seeded overlay). */
+  bp3d?: Bp3dViews
 }
 
 class Boundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -53,7 +54,10 @@ class Boundary extends Component<{ children: ReactNode }, { error: Error | null 
 
 function Loader() {
   const { progress } = useProgress()
-  return <Html center><div role="status" className="rounded-full bg-white px-4 py-2 text-xs font-medium text-navy-700 shadow">Loading 3D model… {Math.round(progress)}%</div></Html>
+  const { gl } = useThree()
+  // Stable DOM target (see FloatingLabel): drei's Html otherwise re-creates its root mid-render.
+  const portal = useMemo(() => ({ current: gl.domElement.parentElement as HTMLElement }), [gl])
+  return <Html center portal={portal}><div role="status" className="rounded-full bg-white px-4 py-2 text-xs font-medium text-navy-700 shadow">Loading 3D model… {Math.round(progress)}%</div></Html>
 }
 
 function webglAvailable() {
@@ -63,7 +67,7 @@ function webglAvailable() {
   } catch { return false }
 }
 
-export default function HeartScene({ risks, illustrative, selected, onSelect, onReport, compact, className, modelUrl, paths, editVessel, onEditPoint, lad }: HeartSceneProps) {
+export default function HeartScene({ risks, illustrative, selected, onSelect, onReport, compact, className, modelUrl, paths, editVessel, onEditPoint, bp3d, resetSignal }: HeartSceneProps) {
   const controls = useRef<OrbitControlsImpl>(null)
   const [rotate, setRotate] = useState(true)
   const [beat, setBeat] = useState(true)
@@ -73,8 +77,14 @@ export default function HeartScene({ risks, illustrative, selected, onSelect, on
   const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
   useEffect(() => { if (reduced) { setRotate(false); setBeat(false) } }, [reduced])
 
+  useEffect(() => { if (resetSignal) controls.current?.reset() }, [resetSignal])
+
   const handleReport = (r: SceneReport) => { setReport(r); onReport?.(r) }
   const allMapped = report ? VESSEL_IDS.every((id) => report.mapped[id]) : null
+  // Reflect what is actually drawn (loaded), not merely requested: a failed load keeps the seeded overlay.
+  const bpActive = report?.atlas?.shown ?? []
+  const bpIso = report?.atlas?.isolated ?? undefined
+  const bpLabel = bpIso ? `BodyParts3D ${bpIso} — isolated inspection` : bpActive.length ? `BodyParts3D ${bpActive.join(' · ')} — manual alignment, unverified` : null
   const anyRisk = risks && VESSEL_IDS.some((id) => risks[id] != null)
 
   if (!gl) {
@@ -92,18 +102,17 @@ export default function HeartScene({ risks, illustrative, selected, onSelect, on
         <Boundary>
           <Suspense fallback={<Loader />}>
             <HeartModel risks={risks} selected={selected} onSelect={onSelect} onReport={handleReport}
-              heartbeat={beat} showLabels={!compact} url={modelUrl} paths={paths} editVessel={editVessel} onEditPoint={onEditPoint} lad={lad} />
+              heartbeat={beat} showLabels={!compact} url={modelUrl} paths={paths} editVessel={editVessel} onEditPoint={onEditPoint} bp3d={bp3d} />
           </Suspense>
         </Boundary>
         <OrbitControls ref={controls} makeDefault enableDamping enablePan={!compact} target={[0, 0.25, 0]}
-          minDistance={2.2} maxDistance={9} autoRotate={rotate && !selected && !editVessel} autoRotateSpeed={0.9}
-          onEnd={() => controls.current?.saveState?.()} />
+          minDistance={2.2} maxDistance={9} autoRotate={rotate && !selected && !editVessel} autoRotateSpeed={0.9} />
       </Canvas>
 
       {!compact && report && (
         <span className={cx('absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-medium',
           allMapped ? 'bg-teal-soft text-teal-800' : 'bg-amber-100 text-amber-900')}>
-          {!allMapped ? 'Vessel mapping pending' : lad && lad.mode !== 'seeded' ? (lad.mode === 'isolated' ? 'BodyParts3D LAD — isolated inspection' : 'BodyParts3D LAD — manual alignment, unverified') : report.overlays?.length ? 'Vessel overlay — approximate placement' : 'Vessel mapping verified (LAD · LCX · RCA)'}
+          {!allMapped ? 'Vessel mapping pending' : bpLabel ?? (report.overlays?.length ? 'Vessel overlay — approximate placement' : 'Vessel mapping verified (LAD · LCX · RCA)')}
         </span>
       )}
       {illustrative && anyRisk && (

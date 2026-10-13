@@ -18,6 +18,8 @@ export interface SceneReport {
   mapped: Record<VesselId, boolean>
   /** Vessels drawn as approximate overlay tubes rather than separate meshes in the GLB. */
   overlays?: VesselId[]
+  /** Vessels currently drawn from loaded BodyParts3D meshes (not merely requested), and whether one is isolated. */
+  atlas?: { shown: VesselId[]; isolated: VesselId | null }
   bounds: { min: [number, number, number]; max: [number, number, number] }
 }
 

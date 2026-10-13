@@ -43,9 +43,9 @@ Inspection results (programmatic; Blender is not installed and was not used):
   *BodyParts3D isolated* (the trunk alone, for inspection) or *BodyParts3D on scan* (manual position/rotation/scale sliders, saved in the browser,
   labelled "unverified"). In overlay mode the BodyParts3D LAD replaces the seeded LAD tube (no duplicate) and takes the risk colour, selection and floating score tag.
 - Segment colour is configurable (`BP3D_LAD.defaultColor` / colour picker). Scale is `BP3D_LAD.unitsPerMm` (matches the scan's ~181 mm → 2.4 units).
-- LCX and RCA are unchanged (seeded overlay). Do not derive them from these files. Next: obtain the matching BodyParts3D concepts
-  (right coronary artery, circumflex branch of left coronary artery), copy them to `public/models/coronary/{RCA,LCX}/`, generalise `bp3dLad.ts`/`useBp3dLad.ts`
-  per vessel, and ideally register all of them to the scan with real landmarks (or switch to a BodyParts3D heart as the body).
+- LCX and RCA now have their own BodyParts3D mesh sets (see below); vessels left on *Seeded overlay* keep the approximate tube.
+  Settings (mode, visibility, colour, manual placement) are independent per vessel in *3D Heart Explorer → Vessel models*. Isolated inspection shows one vessel at a time.
+  Config lives in `bp3dVessels.ts` (`BP3D_VESSELS`); loading/disposal in `useBp3dLad.ts` (`useBp3dVessel`). A missing or empty OBJ sets that vessel to an error state and its seeded overlay stays.
 - Attribution: BodyParts3D, © The Database Center for Life Science, licensed under CC Attribution-Share Alike 2.1 Japan (ShareAlike applies to derived material).
 
 ## Using a different heart model
@@ -69,3 +69,23 @@ Inspection results (programmatic; Blender is not installed and was not used):
 
 Colour/emissive strength follows the model output for that vessel with one shared scale (`lib/risk.ts`, `VISUAL` in
 `vesselConfig.ts`). Vessel geometry is never scaled or narrowed: the dataset has no patient-specific lesion location or geometry.
+
+## BodyParts3D LCX and RCA (added 2026-10-12)
+
+Source: BodyParts3D 4.0, PART-OF tree, 99% polygon reduction, `partof_BP3D_4.0_obj_99.zip`
+(https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/partof_BP3D_4.0_obj_99.zip), with component lists from `partof_element_parts.txt`.
+Files are byte-identical to the archive members (no modification). Retrieved 2026-10-12.
+
+- **LCX** — `frontend/public/models/coronary/LCX/`: FJ2649–FJ2654, concept FMA3895 "Circumflex branch of left coronary artery" (representation BP9745). The database has no separate trunk concept; which component is proximal is not stated, and some components are separated by up to ~9 mm gaps.
+- **RCA** — `frontend/public/models/coronary/RCA/`: 29 components of FMA50039 "Right coronary artery" (BP9299): trunk FJ2723 (FMA3802, BP9674), marginal (FMA3818), anterior ventricular (FMA3815), posterior ventricular (FMA3837), posterior interventricular (FMA3840) branches and right conus artery (FMA3807, FJ2670/FJ2676). Per-file ids are in `RCA/manifest.json`.
+- Each OBJ has `usemtl mtl1` but no `.mtl`/textures; units mm, whole-body coordinates (z up); open meshes with normals.
+- The LAD files come from an older BodyParts3D export (BP51969, FMA 3.2.1) than LCX/RCA (4.0). All three sit in the same coordinate region, but their mutual registration is unverified, and none is registered to the scan.
+- Not obtained: the website's per-download "BP5xxxx" representation ids for LCX/RCA (the site is JS-driven); the ids recorded are those in the archive file headers and `partof_parts_list_e.txt`.
+
+## Maintenance notes (browser regression pass)
+
+- **Clean clone:** `frontend/src/lib/risk.ts` is required source. `.gitignore` previously ignored it through the Python `lib/` rule; an exception (`!frontend/src/lib/`) now keeps it visible. `frontend/public/models/heart-scan.glb` is intentionally git-ignored (licence unverified), so a clean clone needs that file supplied separately.
+- **React warning "Attempted to synchronously unmount a root…":** caused by drei `<Html>` (floating labels and the loader). Its default portal target is `events.connected || gl.domElement.parentNode`, which changes after the first pointer event, so drei tears down and rebuilds its DOM root during a React render. Both `<Html>` uses now pass a stable `portal`. Verified: with labels disabled there were 0 warnings; with the stable portal there are 0 on load and on route changes (it was 3 and 9).
+- **Camera reset:** `OrbitControls` no longer re-saves its state after every drag, so "Reset camera" returns to the initial view instead of the last dragged one.
+- Regression suite used for these checks: headless Chrome (software WebGL) driven by puppeteer-core, kept outside the repo. Pixel comparisons use a tolerance; orbit inertia settles slowly under software rendering.
+

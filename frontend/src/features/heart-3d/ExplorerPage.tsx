@@ -7,14 +7,15 @@ import type { SceneReport } from './inspect'
 import { MODEL_URL, VESSELS, VESSEL_IDS } from './vesselConfig'
 import { loadPaths, resetPaths, savePaths, type Vec3, type VesselPaths } from './vesselPaths'
 import type { VesselId } from '../../types/api'
-import { BP3D_LAD, DEFAULT_PLACEMENT, loadPlacement, savePlacement, type Bp3dMode, type Placement } from './bp3dLad'
+import { BP3D_LAD, type Bp3dMode } from './bp3dLad'
+import { BP3D_VESSELS, DEFAULT_PLACEMENTS, clearVesselViews, loadVesselView, saveVesselView, type Bp3dVesselView, type Bp3dViews } from './bp3dVessels'
 import type { Bp3dState } from './useBp3dLad'
 import type { Vec3 as V3 } from './vesselPaths'
 
 const MODES: { id: Bp3dMode; label: string; hint: string }[] = [
   { id: 'seeded', label: 'Seeded overlay (default)', hint: 'Approximate tube drawn on the scan. Used on the results page.' },
   { id: 'overlay', label: 'BodyParts3D on scan', hint: 'Manual alignment by eye. Not a registration: position/orientation are unverified.' },
-  { id: 'isolated', label: 'BodyParts3D isolated', hint: 'The three LAD segments alone, enlarged, for inspection. No heart.' },
+  { id: 'isolated', label: 'BodyParts3D isolated', hint: 'This vessel’s atlas segments alone, enlarged, for inspection. No heart.' },
 ]
 
 function Slider({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
@@ -33,18 +34,44 @@ export default function ExplorerPage() {
   const [paths, setPaths] = useState<VesselPaths>(loadPaths)
   const [editing, setEditing] = useState<VesselId | null>(null)
   const [copied, setCopied] = useState(false)
+  const [resetSignal, setResetSignal] = useState(0)
   const v = selected ? VESSELS[selected] : null
 
-  const [ladMode, setLadMode] = useState<Bp3dMode>('seeded')
-  const [saved] = useState(loadPlacement)
-  const [placement, setPlacement] = useState<Placement>(saved.placement)
-  const [ladColor, setLadColor] = useState(saved.color)
-  const [bp, setBp] = useState<Bp3dState>({ status: 'idle' })
-  const setP = (next: Placement) => { setPlacement(next); savePlacement(next, ladColor) }
-  const setAxis = (key: 'position' | 'rotationDeg', i: number, val: number) => {
-    const a = [...placement[key]] as V3; a[i] = val; setP({ ...placement, [key]: a })
+  // BodyParts3D meshes: independent mode / visibility / colour / placement / load state per vessel.
+  const [bpVessel, setBpVessel] = useState<VesselId>('LAD')
+  const [views, setViews] = useState<Record<VesselId, Bp3dVesselView>>(() => {
+    const init = (id: VesselId): Bp3dVesselView => ({ mode: 'seeded', visible: true, ...loadVesselView(id) })
+    return { LAD: init('LAD'), LCX: init('LCX'), RCA: init('RCA') }
+  })
+  const [bpStates, setBpStates] = useState<Partial<Record<VesselId, Bp3dState>>>({})
+  const handlers = useMemo(() => ({
+    LAD: (s: Bp3dState) => setBpStates((p) => ({ ...p, LAD: s })),
+    LCX: (s: Bp3dState) => setBpStates((p) => ({ ...p, LCX: s })),
+    RCA: (s: Bp3dState) => setBpStates((p) => ({ ...p, RCA: s })),
+  }), [])
+  const patchView = (id: VesselId, patch: Partial<Bp3dVesselView>) => setViews((cur) => {
+    const next = { ...cur, [id]: { ...cur[id], ...patch } }
+    // Isolated inspection shows one vessel at a time (each mesh set is recentred on itself).
+    if (patch.mode === 'isolated') VESSEL_IDS.forEach((o) => { if (o !== id && next[o].mode === 'isolated') next[o] = { ...next[o], mode: 'seeded' } })
+    if (patch.placement || patch.color) saveVesselView(id, next[id].placement, next[id].color)
+    return next
+  })
+  const bp3d = useMemo<Bp3dViews>(() => ({
+    LAD: { ...views.LAD, onState: handlers.LAD }, LCX: { ...views.LCX, onState: handlers.LCX }, RCA: { ...views.RCA, onState: handlers.RCA },
+  }), [views, handlers])
+  /** Clear everything saved in this browser and return to the default view. */
+  const resetAll = () => {
+    resetPaths(); clearVesselViews()
+    setPaths(loadPaths())
+    setViews({ LAD: { mode: 'seeded', visible: true, ...loadVesselView('LAD') }, LCX: { mode: 'seeded', visible: true, ...loadVesselView('LCX') }, RCA: { mode: 'seeded', visible: true, ...loadVesselView('RCA') } })
+    setBpVessel('LAD'); setEditing(null); setSelected(null); setResetSignal((n) => n + 1)
   }
-  const lad = useMemo(() => ({ mode: ladMode, placement, color: ladColor, onState: setBp }), [ladMode, placement, ladColor])
+  const bpView = views[bpVessel]
+  const bpCfg = BP3D_VESSELS[bpVessel]
+  const bp = bpStates[bpVessel] ?? { status: 'idle' as const }
+  const setAxis = (key: 'position' | 'rotationDeg', i: number, val: number) => {
+    const a = [...bpView.placement[key]] as V3; a[i] = val; patchView(bpVessel, { placement: { ...bpView.placement, [key]: a } })
+  }
 
   const update = (next: VesselPaths) => { setPaths(next); savePaths(next) }
   const addPoint = (id: VesselId, p: Vec3) => update({ ...paths, [id]: [...paths[id], p] })
@@ -57,8 +84,9 @@ export default function ExplorerPage() {
       </div>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <HeartScene className="h-[480px] lg:h-[620px]" selected={selected} onSelect={setSelected} onReport={setReport}
-          paths={paths} editVessel={editing} onEditPoint={addPoint} lad={lad} />
+          paths={paths} editVessel={editing} onEditPoint={addPoint} bp3d={bp3d} resetSignal={resetSignal} />
         <div className="space-y-4">
+          <Button variant="secondary" className="w-full" onClick={resetAll}><RotateCcw className="h-4 w-4" /> Reset heart and vessels to defaults</Button>
           <Card className="p-5" aria-live="polite">
             {v ? (
               <>
@@ -75,43 +103,61 @@ export default function ExplorerPage() {
           </Card>
 
           <Card>
-            <CardHeader title="LAD model (BodyParts3D)" subtitle="Three real mesh segments of the LAD trunk, FMA74912" />
+            <CardHeader title="Vessel models (BodyParts3D)" subtitle="Real atlas mesh segments for LAD, LCX and RCA; each vessel is configured independently" />
             <div className="space-y-3 p-5 text-sm">
-              <div role="radiogroup" aria-label="LAD source" className="space-y-1.5">
+              <div role="tablist" aria-label="BodyParts3D vessel" className="flex flex-wrap gap-2">
+                {VESSEL_IDS.map((id) => {
+                  const st = bpStates[id]?.status
+                  return (
+                    <Button key={id} variant={bpVessel === id ? 'primary' : 'secondary'} onClick={() => setBpVessel(id)} role="tab" aria-selected={bpVessel === id}>
+                      {id} <span className="text-xs opacity-70">{views[id].mode === 'seeded' ? 'seeded' : st === 'ready' ? views[id].mode : st === 'error' ? 'error' : 'loading'}</span>
+                    </Button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-navy-500">{bpCfg.concept} · {bpCfg.segments.length} mesh components</p>
+              <label className="flex items-center gap-2 text-xs text-navy-700">
+                <input type="checkbox" checked={bpView.visible} onChange={(e) => patchView(bpVessel, { visible: e.target.checked })} /> Show {bpVessel}
+              </label>
+              <div role="radiogroup" aria-label={`${bpVessel} source`} className="space-y-1.5">
                 {MODES.map((m) => (
-                  <label key={m.id} className={`flex cursor-pointer gap-2 rounded-lg border p-2.5 ${ladMode === m.id ? 'border-navy-900 bg-canvas' : 'border-line'}`}>
-                    <input type="radio" name="lad-mode" checked={ladMode === m.id} onChange={() => { setLadMode(m.id); setEditing(null) }} className="mt-1" />
+                  <label key={m.id} className={`flex cursor-pointer gap-2 rounded-lg border p-2.5 ${bpView.mode === m.id ? 'border-navy-900 bg-canvas' : 'border-line'}`}>
+                    <input type="radio" name={`bp-mode-${bpVessel}`} checked={bpView.mode === m.id} onChange={() => { patchView(bpVessel, { mode: m.id }); setEditing(null) }} className="mt-1" />
                     <span><span className="font-medium text-navy-900">{m.label}</span><span className="block text-xs text-navy-500">{m.hint}</span></span>
                   </label>
                 ))}
               </div>
-              {ladMode !== 'seeded' && bp.status === 'loading' && <p className="text-xs text-navy-500">Loading LAD segments…</p>}
-              {ladMode !== 'seeded' && bp.status === 'error' && <Alert tone="error" title="LAD model failed to load">{bp.error}. The seeded LAD overlay is shown instead.</Alert>}
-              {ladMode !== 'seeded' && bp.status === 'ready' && bp.segments && (
-                <table className="w-full text-left text-xs">
-                  <thead className="text-navy-500"><tr><th className="py-1 font-medium">Segment</th><th className="font-medium">Verts</th><th className="font-medium">Tris</th><th className="font-medium">Length*</th></tr></thead>
-                  <tbody>{bp.segments.map((sg) => (
-                    <tr key={sg.id} className="border-t border-line"><td className="py-1.5 font-medium">{sg.id} <span className="font-normal text-navy-500">{sg.role}</span></td><td>{sg.vertices}</td><td>{sg.triangles}</td>
-                      <td>{Math.hypot(...(sg.boundsMm.max.map((m, i) => m - sg.boundsMm.min[i]) as V3)).toFixed(0)} mm</td></tr>))}</tbody>
-                </table>
+              {bpView.mode !== 'seeded' && bp.status === 'loading' && <p className="text-xs text-navy-500">Loading {bpVessel} segments…</p>}
+              {bpView.mode !== 'seeded' && bp.status === 'error' && <Alert tone="error" title={`${bpVessel} model failed to load`}>{bp.error}. The seeded {bpVessel} overlay is shown instead.</Alert>}
+              {bpView.mode !== 'seeded' && bp.status === 'ready' && bp.segments && (
+                <div className="max-h-52 overflow-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 bg-white text-navy-500"><tr><th className="py-1 font-medium">Segment</th><th className="font-medium">Verts</th><th className="font-medium">Tris</th><th className="font-medium">Length*</th></tr></thead>
+                    <tbody>{bp.segments.map((sg) => (
+                      <tr key={sg.id} className="border-t border-line"><td className="py-1.5 pr-3 font-medium">{sg.id} <span className="font-normal text-navy-500">{sg.role}</span></td><td className="pr-3 tabular-nums">{sg.vertices}</td><td className="pr-3 tabular-nums">{sg.triangles}</td>
+                        <td>{Math.hypot(...(sg.boundsMm.max.map((m, i) => m - sg.boundsMm.min[i]) as V3)).toFixed(0)} mm</td></tr>))}</tbody>
+                  </table>
+                </div>
               )}
-              {ladMode !== 'seeded' && (
-                <label className="flex items-center gap-2 text-xs text-navy-500">LAD colour (no prediction)
-                  <input type="color" value={ladColor} onChange={(e) => { setLadColor(e.target.value); savePlacement(placement, e.target.value) }} aria-label="LAD colour" />
+              {bpView.mode !== 'seeded' && (
+                <label className="flex items-center gap-2 text-xs text-navy-500">{bpVessel} colour (no prediction)
+                  <input type="color" value={bpView.color} onChange={(e) => patchView(bpVessel, { color: e.target.value })} aria-label={`${bpVessel} colour`} />
                 </label>
               )}
-              {ladMode === 'overlay' && (
+              {bpView.mode === 'overlay' && (
                 <div className="space-y-1.5 border-t border-line pt-3">
                   <p className="text-xs font-medium text-amber-900">Unverified alignment — adjust by eye, then judge for yourself.</p>
-                  {(['X', 'Y', 'Z'] as const).map((a, i) => <Slider key={'p' + a} label={'Pos ' + a} value={placement.position[i]} min={-1.5} max={1.5} step={0.01} onChange={(val) => setAxis('position', i, val)} />)}
-                  {(['X', 'Y', 'Z'] as const).map((a, i) => <Slider key={'r' + a} label={'Rot ' + a} value={placement.rotationDeg[i]} min={-180} max={180} step={1} onChange={(val) => setAxis('rotationDeg', i, val)} />)}
-                  <Slider label="Scale" value={placement.scale} min={0.3} max={3} step={0.01} onChange={(val) => setP({ ...placement, scale: val })} />
-                  <Button variant="ghost" onClick={() => setP(DEFAULT_PLACEMENT)}><RotateCcw className="h-4 w-4" /> Reset alignment</Button>
+                  {(['X', 'Y', 'Z'] as const).map((a, i) => <Slider key={'p' + a} label={'Pos ' + a} value={bpView.placement.position[i]} min={-1.5} max={1.5} step={0.01} onChange={(val) => setAxis('position', i, val)} />)}
+                  {(['X', 'Y', 'Z'] as const).map((a, i) => <Slider key={'r' + a} label={'Rot ' + a} value={bpView.placement.rotationDeg[i]} min={-180} max={180} step={1} onChange={(val) => setAxis('rotationDeg', i, val)} />)}
+                  <Slider label="Scale" value={bpView.placement.scale} min={0.3} max={3} step={0.01} onChange={(val) => patchView(bpVessel, { placement: { ...bpView.placement, scale: val } })} />
+                  <Button variant="ghost" onClick={() => patchView(bpVessel, { placement: DEFAULT_PLACEMENTS[bpVessel] })}><RotateCcw className="h-4 w-4" /> Reset alignment</Button>
                 </div>
               )}
               <p className="text-xs leading-relaxed text-navy-500">
                 *Bounding-box diagonal. These segments come from the generic BodyParts3D body atlas, not from your scan, and no landmarks link the two,
-                so their relative placement cannot be verified here. Not a clinically validated segmentation. LCX and RCA still use the seeded overlay. {BP3D_LAD.attribution}
+                so their relative placement cannot be verified here. Not a clinically validated segmentation. Source coordinates are millimetres in atlas space;
+                LAD files come from an older BodyParts3D export than LCX/RCA (BodyParts3D 4.0), so their mutual placement is also unverified.
+                Vessels left on “Seeded overlay” use the approximate tube. {BP3D_LAD.attribution}
               </p>
             </div>
           </Card>

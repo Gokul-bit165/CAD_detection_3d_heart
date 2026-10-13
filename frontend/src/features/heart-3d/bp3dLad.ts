@@ -32,22 +32,8 @@ export interface Placement {
 
 // Starting guess only: BodyParts3D is z-up, the scan is y-up, so rotate -90 degrees about x, then
 // sit the trunk near the seeded LAD start. The user must adjust it by eye.
+/** LAD starting guess. Per-vessel placements live in bp3dVessels.ts. */
 export const DEFAULT_PLACEMENT: Placement = { position: [0.05, -0.1, 0.55], rotationDeg: [0, 0, 0], scale: 1 }
 
 /** Isolated inspection view: centred, enlarged, no relation to the heart. */
 export const ISOLATED_PLACEMENT: Placement = { position: [0, 0.25, 0], rotationDeg: [0, 0, 0], scale: 2.6 }
-
-const KEY = 'cardiovista.bp3dLadPlacement.v1'
-export function loadPlacement(): { placement: Placement; color: string } {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (raw) {
-      const p = JSON.parse(raw)
-      return { placement: { ...DEFAULT_PLACEMENT, ...p.placement }, color: p.color ?? BP3D_LAD.defaultColor }
-    }
-  } catch { /* ignore */ }
-  return { placement: DEFAULT_PLACEMENT, color: BP3D_LAD.defaultColor }
-}
-export function savePlacement(placement: Placement, color: string) {
-  try { localStorage.setItem(KEY, JSON.stringify({ placement, color })) } catch { /* ignore */ }
-}
