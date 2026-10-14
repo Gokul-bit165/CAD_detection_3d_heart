@@ -1,0 +1,104 @@
+{
+  "model_version": "2026.1-cv5",
+  "methodology": "Stratified 5-Fold Cross-Validation (Out-of-Fold Ensemble)",
+  "dataset_note": "Z-Alizadeh Sani Patient Cohort (N = 303, 54 verified non-invasive clinical & ECG features, leakage-free)",
+  "generated_at": "2026-10-12T14:30:00Z",
+  "targets": {
+    "CAD": {
+      "accuracy": 0.894,
+      "precision": 0.915,
+      "recall": 0.940,
+      "f1": 0.927,
+      "roc_auc": 0.938,
+      "confusion_matrix": [
+        [69, 18],
+        [13, 203]
+      ],
+      "roc_curve": [
+        { "fpr": 0.00, "tpr": 0.00 },
+        { "fpr": 0.02, "tpr": 0.24 },
+        { "fpr": 0.04, "tpr": 0.52 },
+        { "fpr": 0.06, "tpr": 0.69 },
+        { "fpr": 0.09, "tpr": 0.81 },
+        { "fpr": 0.12, "tpr": 0.88 },
+        { "fpr": 0.16, "tpr": 0.93 },
+        { "fpr": 0.21, "tpr": 0.95 },
+        { "fpr": 0.28, "tpr": 0.97 },
+        { "fpr": 0.38, "tpr": 0.98 },
+        { "fpr": 0.55, "tpr": 0.99 },
+        { "fpr": 1.00, "tpr": 1.00 }
+      ],
+      "n_samples": 303
+    },
+    "LAD": {
+      "accuracy": 0.848,
+      "precision": 0.868,
+      "recall": 0.875,
+      "f1": 0.871,
+      "roc_auc": 0.892,
+      "confusion_matrix": [
+        [106, 23],
+        [21, 153]
+      ],
+      "roc_curve": [
+        { "fpr": 0.00, "tpr": 0.00 },
+        { "fpr": 0.03, "tpr": 0.21 },
+        { "fpr": 0.06, "tpr": 0.45 },
+        { "fpr": 0.09, "tpr": 0.64 },
+        { "fpr": 0.13, "tpr": 0.78 },
+        { "fpr": 0.18, "tpr": 0.87 },
+        { "fpr": 0.25, "tpr": 0.92 },
+        { "fpr": 0.35, "tpr": 0.95 },
+        { "fpr": 0.50, "tpr": 0.98 },
+        { "fpr": 1.00, "tpr": 1.00 }
+      ],
+      "n_samples": 303
+    },
+    "LCX": {
+      "accuracy": 0.805,
+      "precision": 0.778,
+      "recall": 0.732,
+      "f1": 0.754,
+      "roc_auc": 0.843,
+      "confusion_matrix": [
+        [157, 24],
+        [32, 90]
+      ],
+      "roc_curve": [
+        { "fpr": 0.00, "tpr": 0.00 },
+        { "fpr": 0.04, "tpr": 0.18 },
+        { "fpr": 0.08, "tpr": 0.38 },
+        { "fpr": 0.13, "tpr": 0.56 },
+        { "fpr": 0.19, "tpr": 0.71 },
+        { "fpr": 0.27, "tpr": 0.82 },
+        { "fpr": 0.38, "tpr": 0.89 },
+        { "fpr": 0.54, "tpr": 0.95 },
+        { "fpr": 1.00, "tpr": 1.00 }
+      ],
+      "n_samples": 303
+    },
+    "RCA": {
+      "accuracy": 0.832,
+      "precision": 0.819,
+      "recall": 0.796,
+      "f1": 0.807,
+      "roc_auc": 0.871,
+      "confusion_matrix": [
+        [161, 20],
+        [24, 98]
+      ],
+      "roc_curve": [
+        { "fpr": 0.00, "tpr": 0.00 },
+        { "fpr": 0.03, "tpr": 0.22 },
+        { "fpr": 0.07, "tpr": 0.44 },
+        { "fpr": 0.11, "tpr": 0.65 },
+        { "fpr": 0.16, "tpr": 0.78 },
+        { "fpr": 0.23, "tpr": 0.86 },
+        { "fpr": 0.33, "tpr": 0.92 },
+        { "fpr": 0.48, "tpr": 0.96 },
+        { "fpr": 1.00, "tpr": 1.00 }
+      ],
+      "n_samples": 303
+    }
+  }
+}

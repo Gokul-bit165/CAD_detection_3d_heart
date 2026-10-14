@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     # "mock" (demo outputs) or "trained" (real artifacts from backend/model_artifacts)
     prediction_provider: str = "mock"
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:4173,http://localhost:3000,http://127.0.0.1:3000"
     model_artifacts_dir: str = "backend/model_artifacts"
     database_path: str = "backend/data/cardiovista.db"
     api_port: int = Field(default=8000)

@@ -76,3 +76,4 @@ frontend/tsconfig.tsbuildinfo
 
 # Decimated scan GLB: licence of the Sketchfab source not yet verified
 frontend/public/models/heart-scan.glb
+*.blend1

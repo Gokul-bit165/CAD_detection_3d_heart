@@ -1,7 +1,7 @@
 import { useAppData } from '../../app/AppData'
 import { DISCLAIMER } from '../../app/AppShell'
 import { Alert, Card, CardHeader } from '../../components/ui'
-import { MODEL_ATTRIBUTION, MODEL_URL } from '../heart-3d/vesselConfig'
+import { MODEL_ATTRIBUTION } from '../heart-3d/vesselConfig'
 
 export default function AboutPage() {
   const { health, modelInfo, schema } = useAppData()
@@ -32,7 +32,7 @@ export default function AboutPage() {
       <Card>
         <CardHeader title="3D model" />
         <div className="space-y-2 p-5 text-sm leading-relaxed text-navy-700">
-          <p><code className="text-[12px]">{MODEL_URL}</code> — {MODEL_ATTRIBUTION.description}</p>
+          <p>{MODEL_ATTRIBUTION.description}</p>
           <p className="rounded-lg bg-amber-50 p-2 text-amber-950">{MODEL_ATTRIBUTION.licenceNote}</p>
           <ul className="list-disc pl-5">{MODEL_ATTRIBUTION.references.map((r) => <li key={r.url}><a className="text-blue-brand underline" href={r.url} target="_blank" rel="noreferrer">{r.label}</a></li>)}</ul>
         </div>
