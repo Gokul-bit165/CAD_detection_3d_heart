@@ -4,8 +4,14 @@ import type {
 } from '../types/api'
 import { getFixture, isFixtureId, listFixtureSummaries, FIXTURE_HIGH } from '../dev/fixtures'
 
-const BASE: string = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
-  ?? 'http://localhost:8000/api/v1'
+function resolveBaseUrl(): string {
+  const raw = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim().replace(/\/$/, '')
+  if (!raw) return 'http://localhost:8000/api/v1'
+  const withProtocol = raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`
+  return withProtocol.endsWith('/api/v1') ? withProtocol : `${withProtocol}/api/v1`
+}
+
+const BASE: string = resolveBaseUrl()
 
 const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === 'true'
 
