@@ -11,14 +11,19 @@ import ExplainabilityPanel from '../explainability/ExplainabilityPanel'
 import InputSummary from './InputSummary'
 import { OverallCard, VesselCards, VesselDetail } from './ResultCards'
 
-export default function ResultsPage() {
-  const { id } = useParams()
-  const [data, setData] = useState<PredictionResponse | null>(null)
+export default function ResultsPage({ predictionId, initialData }: { predictionId?: string; initialData?: PredictionResponse } = {}) {
+  const params = useParams<{ id: string }>()
+  const id = predictionId ?? params.id
+  const [data, setData] = useState<PredictionResponse | null>(initialData ?? null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<VesselId | null>(null)
   const [resetCount, setResetCount] = useState(0)
 
   useEffect(() => {
+    if (initialData) {
+      setData(initialData)
+      return
+    }
     setData(null); setError(null); setSelected(null)
     if (!id) return
     let cancelled = false
@@ -26,7 +31,7 @@ export default function ResultsPage() {
       .then((r) => { if (!cancelled) setData(r) })
       .catch((e) => { if (!cancelled) setError(e instanceof ApiError ? e.message : 'Failed to load the prediction.') })
     return () => { cancelled = true }
-  }, [id])
+  }, [id, initialData])
 
   const risks = useMemo(() => {
     if (!data?.vessels) return undefined
