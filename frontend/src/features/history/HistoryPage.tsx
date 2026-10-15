@@ -20,7 +20,7 @@ export default function HistoryPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-display text-2xl font-semibold text-ink">Assessment History</h2>
+        <h2 className="text-2xl font-semibold text-ink">Assessment History</h2>
         <p className="mt-1 text-sm text-ink-3">
           Stored in a local SQLite database. Records contain clinical values, estimated risk probabilities, and model version.
         </p>

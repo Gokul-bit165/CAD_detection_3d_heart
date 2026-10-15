@@ -143,7 +143,7 @@ export default function ResultsPage({
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to History
             </Link>
-            <span className="text-ink-3">â€¢</span>
+            <span className="text-ink-3/40 font-bold">/</span>
             <span className="font-mono text-xs uppercase tracking-wider text-ink-3">
               Assessment Report
             </span>
@@ -151,16 +151,16 @@ export default function ResultsPage({
               {isFlagged ? 'CAD Flagged' : 'CAD Negative'}
             </Badge>
           </div>
-          <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
             Coronary Assessment & 3D Anatomy
           </h1>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
             <span>
               Record ID: <code className="font-semibold text-ink font-mono">{data.id}</code>
             </span>
-            <span>â€¢</span>
+            <span className="text-ink-3/40 font-bold">/</span>
             <span>{new Date(data.created_at).toLocaleString()}</span>
-            <span>â€¢</span>
+            <span className="text-ink-3/40 font-bold">/</span>
             <span>
               Engine: <strong className="text-ink-2 font-medium">{data.model_version ?? '2026-10-ens5'}</strong>
             </span>
@@ -177,7 +177,7 @@ export default function ResultsPage({
       </div>
 
       {/* Main 3-Column Responsive Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_340px] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)_340px] gap-6 items-start w-full min-w-0">
         {/* Left Column: Patient Snapshot Panel (Desktop: Col 1, Mobile: Order 6) */}
         <div className="order-6 lg:order-1 lg:col-span-1">
           <Reveal delay={0.05}>
@@ -243,12 +243,12 @@ export default function ResultsPage({
           </div>
 
           {/* 4 Mini-Charts row directly under the heart */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <Card className="h-[230px] shadow-sm border border-line hover:border-ink-3/30 transition-colors">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="min-h-[260px] shadow-sm border border-line min-w-0 overflow-hidden hover:border-ink-3/30 transition-colors">
               <DriversChart explanation={data.explanation} target={activeDriverTarget} />
             </Card>
 
-            <Card className="h-[230px] shadow-sm border border-line hover:border-ink-3/30 transition-colors">
+            <Card className="min-h-[260px] shadow-sm border border-line min-w-0 overflow-hidden hover:border-ink-3/30 transition-colors">
               <VesselThresholdChart
                 overall={data.overall}
                 vessels={data.vessels}
@@ -258,11 +258,11 @@ export default function ResultsPage({
               />
             </Card>
 
-            <Card className="h-[230px] shadow-sm border border-line hover:border-ink-3/30 transition-colors">
+            <Card className="min-h-[260px] shadow-sm border border-line min-w-0 overflow-hidden hover:border-ink-3/30 transition-colors">
               <LabsVsRangeChart inputs={data.inputs} schema={schema} />
             </Card>
 
-            <Card className="h-[230px] shadow-sm border border-line hover:border-ink-3/30 transition-colors">
+            <Card className="min-h-[260px] shadow-sm border border-line min-w-0 overflow-hidden hover:border-ink-3/30 transition-colors">
               <ClinicalBurdenRadar inputs={data.inputs} schema={schema} />
             </Card>
           </div>

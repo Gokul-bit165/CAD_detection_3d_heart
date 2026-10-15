@@ -43,7 +43,7 @@ export default function ExplorerPage() {
       </div>
 
       <div>
-        <h2 className="font-display text-2xl font-semibold text-ink">3D Heart Explorer</h2>
+        <h2 className="text-2xl font-semibold text-ink">3D Heart Explorer</h2>
         <p className="mt-1 text-sm text-ink-3">
           Rotate, zoom and click an artery, or press the route button for a guided tour. Set manual damage scores below to see how each coronary artery looks at different severities � plaque grows, blood slows and the artery changes colour.
         </p>

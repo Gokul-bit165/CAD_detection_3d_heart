@@ -142,7 +142,7 @@ export default function AssessmentPage() {
       {/* Header and top tab buttons */}
       <div className="flex flex-wrap items-start justify-between gap-4 pb-2 border-b border-line/60">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-ink">New Patient Assessment</h2>
+          <h2 className="text-2xl font-semibold text-ink">New Patient Assessment</h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-3">
             Enter clinical measurements to produce an estimated risk score and 3D coronary reconstruction.
           </p>

@@ -169,7 +169,7 @@ export default function EvaluationPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-display text-2xl font-semibold text-ink">Model Evaluation</h2>
+        <h2 className="text-2xl font-semibold text-ink">Model Evaluation</h2>
         <p className="mt-1 text-sm text-ink-3">
           Held-out test performance of the trained models, shown exactly as generated with the model artifacts.
         </p>

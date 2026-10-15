@@ -173,7 +173,7 @@ export default function ImportPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-semibold text-ink">Batch Import Patients</h2>
+          <h2 className="text-2xl font-semibold text-ink">Batch Import Patients</h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-3">
             Upload a .csv or .xlsx with one patient per row and dataset column names in the header (up to 500 rows). Every row is
             validated identically to the individual assessment form. Outcome columns such as Cath, LAD, LCX, and RCA are excluded to prevent target leakage.

@@ -7,7 +7,7 @@ export default function AboutPage() {
   const { health, modelInfo, schema } = useAppData()
   return (
     <div className="max-w-3xl space-y-5">
-      <h2 className="font-display text-2xl font-semibold text-ink">Settings & About</h2>
+      <h2 className="text-2xl font-semibold text-ink">Settings & About</h2>
       <Alert tone="warn" title="Research and Educational Prototype">
         {DISCLAIMER}
       </Alert>

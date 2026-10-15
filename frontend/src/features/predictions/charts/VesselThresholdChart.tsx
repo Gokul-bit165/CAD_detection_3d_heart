@@ -91,7 +91,7 @@ export default function VesselThresholdChart({
 
   if (rows.length === 0) {
     return (
-      <div className={`flex h-[230px] flex-col items-center justify-center p-4 text-center text-ink-3 ${className}`}>
+      <div className={`flex min-h-[260px] h-full flex-col items-center justify-center p-4 text-center text-ink-3 ${className}`}>
         <p className="text-xs font-medium text-ink-2">Threshold Tracking</p>
         <p className="mt-1 text-xs">Target estimates not available for this record.</p>
       </div>
@@ -111,7 +111,7 @@ export default function VesselThresholdChart({
     <div
       role="img"
       aria-label={ariaText}
-      className={`flex flex-col justify-between p-3.5 h-[230px] ${className}`}
+      className={`flex flex-col justify-between p-4 min-h-[260px] h-full ${className}`}
     >
       <div className="flex items-center justify-between pb-1 border-b border-line/60">
         <div>

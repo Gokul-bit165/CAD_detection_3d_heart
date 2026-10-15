@@ -103,7 +103,7 @@ export default function OverviewPage() {
               <Sparkles className="h-3 w-3" /> Multimodal AI Hackathon 2026 • Track A
             </span>
           </div>
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-ink">
+          <h2 className="text-3xl font-semibold tracking-tight text-ink">
             CardioVista AI Diagnostics
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-ink-3">

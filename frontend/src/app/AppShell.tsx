@@ -85,7 +85,7 @@ export default function AppShell() {
               <Activity className="h-5 w-5" aria-hidden />
             </span>
             <div className="flex flex-col">
-              <span className="font-display text-xl font-semibold tracking-tight text-ink leading-tight">
+              <span className="text-xl font-bold tracking-tight text-ink leading-tight">
                 CardioVista
               </span>
               <span className="text-[10px] tracking-wider uppercase text-ink-3 font-medium">
@@ -211,7 +211,7 @@ export default function AppShell() {
         <main
           className={cx(
             'mx-auto w-full flex-1 px-4 py-6 sm:px-8',
-            wide ? 'max-w-[1760px]' : 'max-w-[1400px]'
+            wide ? 'max-w-[1760px] min-w-0' : 'max-w-[1400px] min-w-0'
           )}
         >
           {reducedMotion ? (
