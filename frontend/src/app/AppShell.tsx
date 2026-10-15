@@ -1,11 +1,24 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
-  Activity, BarChart3, ClipboardList, FileHeart, FileSpreadsheet, HeartPulse, History, Info, LayoutDashboard, Menu, ShieldAlert, X,
+  Activity,
+  BarChart3,
+  ClipboardList,
+  FileHeart,
+  FileSpreadsheet,
+  HeartPulse,
+  History,
+  Info,
+  LayoutDashboard,
+  Menu,
+  ShieldAlert,
+  X,
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 import { useAppData } from './AppData'
 import { Badge, cx } from '../components/ui'
 import { ThemeToggle } from './theme'
+import { usePrefersReducedMotion } from '../components/motion'
 
 export const DISCLAIMER =
   'This application is a research and educational prototype. Its outputs are not a diagnosis and do not replace professional medical assessment or formal diagnostic imaging.'
@@ -41,6 +54,7 @@ export default function AppShell() {
   const [open, setOpen] = useState(false)
   const [wide, setWide] = useState(false)
   const { pathname } = useLocation()
+  const reducedMotion = usePrefersReducedMotion()
 
   const allNav = [...PRIMARY_NAV, ...EXPLORE_NAV]
   const current =
@@ -60,7 +74,7 @@ export default function AppShell() {
       {/* Sidebar */}
       <aside
         className={cx(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-surface transition-transform lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-surface transition-transform duration-200 lg:static lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
         aria-label="Primary"
@@ -71,8 +85,12 @@ export default function AppShell() {
               <Activity className="h-5 w-5" aria-hidden />
             </span>
             <div className="flex flex-col">
-              <span className="font-display text-xl font-semibold tracking-tight text-ink leading-tight">CardioVista</span>
-              <span className="text-[10px] tracking-wider uppercase text-ink-3 font-medium">CAD Analysis</span>
+              <span className="font-display text-xl font-semibold tracking-tight text-ink leading-tight">
+                CardioVista
+              </span>
+              <span className="text-[10px] tracking-wider uppercase text-ink-3 font-medium">
+                CAD Analysis
+              </span>
             </div>
           </div>
           <button
@@ -94,15 +112,28 @@ export default function AppShell() {
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   cx(
-                    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                    'relative group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-accent-soft text-accent font-semibold shadow-xs'
+                      ? 'text-accent font-semibold'
                       : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
                   )
                 }
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-                <span className="truncate">{label}</span>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.div
+                        layoutId={reducedMotion ? undefined : 'sidebar-active'}
+                        className="absolute inset-0 rounded-xl bg-accent-soft border border-accent/20"
+                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-3 truncate">
+                      <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                      <span className="truncate">{label}</span>
+                    </span>
+                  </>
+                )}
               </NavLink>
             ))}
           </div>
@@ -119,21 +150,32 @@ export default function AppShell() {
                   onClick={() => setOpen(false)}
                   className={({ isActive }) =>
                     cx(
-                      'group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                      'relative group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-accent-soft text-accent font-semibold shadow-xs'
+                        ? 'text-accent font-semibold'
                         : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
                     )
                   }
                 >
-                  <div className="flex items-center gap-3 truncate">
-                    <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-                    <span className="truncate">{label}</span>
-                  </div>
-                  {badge && (
-                    <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-ink-3 border border-line">
-                      {badge}
-                    </span>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <motion.div
+                          layoutId={reducedMotion ? undefined : 'sidebar-active'}
+                          className="absolute inset-0 rounded-xl bg-accent-soft border border-accent/20"
+                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <div className="relative z-10 flex items-center gap-3 truncate">
+                        <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+                        <span className="truncate">{label}</span>
+                      </div>
+                      {badge && (
+                        <span className="relative z-10 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] font-medium text-ink-3 border border-line">
+                          {badge}
+                        </span>
+                      )}
+                    </>
                   )}
                 </NavLink>
               ))}
@@ -166,8 +208,27 @@ export default function AppShell() {
           </div>
         </header>
 
-        <main className={cx('mx-auto w-full flex-1 px-4 py-6 sm:px-8', wide ? 'max-w-[1760px]' : 'max-w-[1400px]')}>
-          <Outlet context={{ wide, setWide }} />
+        <main
+          className={cx(
+            'mx-auto w-full flex-1 px-4 py-6 sm:px-8',
+            wide ? 'max-w-[1760px]' : 'max-w-[1400px]'
+          )}
+        >
+          {reducedMotion ? (
+            <Outlet context={{ wide, setWide }} />
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+              >
+                <Outlet context={{ wide, setWide }} />
+              </motion.div>
+            </AnimatePresence>
+          )}
         </main>
 
         <footer
