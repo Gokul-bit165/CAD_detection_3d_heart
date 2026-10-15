@@ -1,6 +1,9 @@
-export type Status = 'ready' | 'unavailable'
+﻿export type Status = 'ready' | 'unavailable'
 export type VesselId = 'LAD' | 'LCX' | 'RCA'
 export type TargetId = 'CAD' | VesselId
+
+export type FindingStatus = 'stenotic' | 'normal'
+export type Severity = 'mild' | 'moderate' | 'severe'
 
 export interface FeatureOption { value: string | number; label: string; dataset_value?: string | number | null }
 
@@ -19,6 +22,8 @@ export interface FeatureSpec {
   observed_max?: number | null
   step?: number | null
   ref_range?: string | null
+  ref_low?: number | null
+  ref_high?: number | null
   options?: FeatureOption[] | null
   dataset_encoding?: 'Y/N' | '0/1' | null
   note?: string | null
@@ -46,6 +51,16 @@ export interface TargetOutput {
   reliability?: 'good' | 'moderate' | 'low' | null
 }
 
+export interface VesselFinding {
+  vessel: VesselId
+  status: FindingStatus
+  probability: number            // 0..1
+  threshold: number              // this vessel's own tuned threshold
+  severity: Severity | null      // null when normal
+  reliability: 'good' | 'moderate' | 'low' | null
+  rank: number                   // 1 = most severe; stenotic first, then normal
+}
+
 export interface FeatureContribution {
   feature: string
   label: string
@@ -58,6 +73,7 @@ export interface FeatureContribution {
 export interface Explanation {
   method: string
   note?: string | null
+  baselines?: Partial<Record<TargetId, number>>
   contributions: FeatureContribution[]
 }
 
@@ -71,6 +87,7 @@ export interface PredictionResponse {
   probability_semantics: string
   overall: TargetOutput | null
   vessels: Record<VesselId, TargetOutput> | null
+  findings?: VesselFinding[] | null
   explanation: Explanation | null
   inputs: FeatureValues | null
   disclaimer: string

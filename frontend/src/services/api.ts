@@ -1,10 +1,13 @@
-import type {
+﻿import type {
   EvaluationResponse, FeatureSchema, FeatureValues, Health, ImportResponse, ModelInfo, PredictionResponse,
   PredictionSummary,
 } from '../types/api'
+import { getFixture, isFixtureId, listFixtureSummaries, FIXTURE_HIGH } from '../dev/fixtures'
 
 const BASE: string = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
   ?? 'http://localhost:8000/api/v1'
+
+const USE_FIXTURES = import.meta.env.VITE_USE_FIXTURES === 'true'
 
 export class ApiError extends Error {
   /** Per-request validation problems, when the server returned any. */
@@ -48,15 +51,36 @@ export const api = {
   health: () => request<Health>('/health'),
   modelInfo: () => request<ModelInfo>('/model-info'),
   features: () => request<FeatureSchema>('/features'),
-  createPrediction: (features: FeatureValues) =>
-    request<PredictionResponse>('/predictions', { method: 'POST', body: JSON.stringify({ features }) }),
-  listPredictions: () => request<PredictionSummary[]>('/predictions'),
-  getPrediction: (id: string) => request<PredictionResponse>(`/predictions/${encodeURIComponent(id)}`),
+
+  createPrediction: (features: FeatureValues) => {
+    if (USE_FIXTURES) return Promise.resolve(FIXTURE_HIGH)
+    return request<PredictionResponse>('/predictions', { method: 'POST', body: JSON.stringify({ features }) })
+  },
+
+  listPredictions: () => {
+    if (USE_FIXTURES) return Promise.resolve(listFixtureSummaries() as PredictionSummary[])
+    return request<PredictionSummary[]>('/predictions')
+  },
+
+  getPrediction: (id: string) => {
+    if (USE_FIXTURES && isFixtureId(id)) return Promise.resolve(getFixture(id))
+    return request<PredictionResponse>(`/predictions/${encodeURIComponent(id)}`)
+  },
+
   evaluation: () => request<EvaluationResponse>('/evaluation'),
+
   importExcel: (file: File) => {
     const body = new FormData()
     body.append('file', file)
     return request<ImportResponse>('/import/excel', { method: 'POST', body })
   },
+
+  importFile: (file: File) => {
+    const body = new FormData()
+    body.append('file', file)
+    return request<ImportResponse>('/import/file', { method: 'POST', body })
+  },
+
   templateUrl: `${BASE}/import/template`,
+  templateCsvUrl: `${BASE}/import/template.csv`,
 }
