@@ -1,4 +1,4 @@
-﻿import type {
+import type {
   EvaluationResponse, FeatureSchema, FeatureValues, Health, ImportResponse, ModelInfo, PredictionResponse,
   PredictionSummary,
 } from '../types/api'
@@ -63,7 +63,7 @@ export const api = {
   },
 
   getPrediction: (id: string) => {
-    if (USE_FIXTURES && isFixtureId(id)) return Promise.resolve(getFixture(id))
+    if (isFixtureId(id)) return Promise.resolve(getFixture(id))
     return request<PredictionResponse>(`/predictions/${encodeURIComponent(id)}`)
   },
 

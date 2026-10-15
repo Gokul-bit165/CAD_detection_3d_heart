@@ -1,16 +1,29 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AppDataProvider } from './AppData'
 import { ThemeProvider } from './theme'
 import AppShell from './AppShell'
-import LatestReportPage from '../features/predictions/LatestReportPage'
 import OverviewPage from '../features/dashboard/OverviewPage'
 import AssessmentPage from '../features/patient-assessment/AssessmentPage'
-import ImportPage from '../features/import/ImportPage'
-import ExplorerPage from '../features/heart-3d/ExplorerPage'
-import ResultsPage from '../features/predictions/ResultsPage'
 import HistoryPage from '../features/history/HistoryPage'
-import EvaluationPage from '../features/model-evaluation/EvaluationPage'
 import AboutPage from '../features/settings/AboutPage'
+
+const LatestReportPage = lazy(() => import('../features/predictions/LatestReportPage'))
+const ResultsPage = lazy(() => import('../features/predictions/ResultsPage'))
+const ExplorerPage = lazy(() => import('../features/heart-3d/ExplorerPage'))
+const ImportPage = lazy(() => import('../features/import/ImportPage'))
+const EvaluationPage = lazy(() => import('../features/model-evaluation/EvaluationPage'))
+
+function PageFallback() {
+  return (
+    <div className="flex h-64 items-center justify-center text-sm text-ink-3">
+      <div className="flex items-center gap-2">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        Loading...
+      </div>
+    </div>
+  )
+}
 
 export default function App() {
   return (
@@ -19,14 +32,49 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route element={<AppShell />}>
-              <Route index element={<LatestReportPage />} />
+              <Route
+                index
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <LatestReportPage />
+                  </Suspense>
+                }
+              />
               <Route path="overview" element={<OverviewPage />} />
               <Route path="assessment" element={<AssessmentPage />} />
-              <Route path="results/:id" element={<ResultsPage />} />
-              <Route path="import" element={<ImportPage />} />
-              <Route path="explorer" element={<ExplorerPage />} />
+              <Route
+                path="results/:id"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ResultsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="import"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ImportPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="explorer"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <ExplorerPage />
+                  </Suspense>
+                }
+              />
               <Route path="history" element={<HistoryPage />} />
-              <Route path="evaluation" element={<EvaluationPage />} />
+              <Route
+                path="evaluation"
+                element={
+                  <Suspense fallback={<PageFallback />}>
+                    <EvaluationPage />
+                  </Suspense>
+                }
+              />
               <Route path="about" element={<AboutPage />} />
               <Route
                 path="*"
