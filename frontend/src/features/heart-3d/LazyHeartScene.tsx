@@ -1,17 +1,34 @@
 import { lazy, Suspense } from 'react'
 import type { HeartSceneProps } from './HeartScene'
+import type { VesselFinding, VesselId } from '../../types/api'
 import { cx } from '../../components/ui'
 
-// three.js + R3F are ~1 MB; load them only when a page actually shows the heart.
 const HeartScene = lazy(() => import('./HeartScene'))
 
-export default function LazyHeartScene(props: HeartSceneProps) {
+export interface ExtendedHeartSceneProps extends HeartSceneProps {
+  findings?: VesselFinding[] | null
+  onTourStep?: (step: { index: number; total: number; vessel: VesselId; status: string } | null) => void
+}
+
+export default function LazyHeartScene(props: ExtendedHeartSceneProps) {
   return (
-    <Suspense fallback={
-      <div role="status" className={cx('grid place-items-center rounded-2xl border border-line bg-white text-sm text-navy-500', props.className)}>
-        Loading 3D viewer…
-      </div>}>
-      <HeartScene {...props} />
+    <Suspense
+      fallback={
+        <div
+          role="status"
+          className={cx(
+            'grid place-items-center rounded-2xl border border-line bg-surface text-sm text-ink-3',
+            props.className
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            Loading 3D Heart...
+          </div>
+        </div>
+      }
+    >
+      <HeartScene {...(props as any)} />
     </Suspense>
   )
 }
