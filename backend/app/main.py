@@ -8,4 +8,13 @@ app = FastAPI(title="CardioVista API", version=API_VERSION,
               description="Research/educational prototype. Not a diagnostic device.")
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_list, allow_methods=["*"],
                    allow_headers=["*"])
+
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "CardioVista API", "version": API_VERSION, "docs": "/docs"}
+
+@app.get("/health")
+def root_health():
+    return {"status": "ok", "service": "CardioVista API"}
+
 app.include_router(router)
