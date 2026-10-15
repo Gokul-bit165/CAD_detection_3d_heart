@@ -3,31 +3,141 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
-  --color-navy-950: #0a1f33;
-  --color-navy-900: #0f2a43;
-  --color-navy-700: #26435f;
-  --color-navy-500: #5a7088;
-  --color-navy-300: #a9b8c8;
-  --color-line: #e3e8ee;
-  --color-canvas: #f6f8fa;
-  --color-teal-brand: #0d9488;
-  --color-teal-soft: #e6f6f4;
-  --color-blue-brand: #2563a8;
+
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-canvas: var(--canvas);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+
+  --color-navy-950: var(--navy-950);
+  --color-navy-900: var(--ink);
+  --color-navy-700: var(--ink-2);
+  --color-navy-500: var(--ink-2);
+  --color-navy-300: var(--ink-3);
+  --color-teal-brand: var(--accent);
+  --color-teal-soft: var(--accent-soft);
+  --color-teal-800: var(--accent);
+  --color-blue-brand: var(--info);
+}
+
+:root {
+  color-scheme: light;
+  --surface: #ffffff;
+  --surface-2: #f0f3f6;
+  --canvas: #f6f8fa;
+  --line: #e3e8ee;
+  --ink: #0f2a43;
+  --ink-2: #41566e;
+  --ink-3: #6b7f96;
+  --accent: #0d9488;
+  --accent-soft: #e6f6f4;
+  --info: #2563a8;
+  --info-soft: #eff6ff;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --warn: #b45309;
+  --warn-soft: #fffbeb;
+  --ok: #059669;
+  --ok-soft: #ecfdf5;
+  --navy-950: #0a1f33;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #111a2b;
+  --surface-2: #17233a;
+  --canvas: #0b1220;
+  --line: #24334d;
+  --ink: #e6edf7;
+  --ink-2: #aebbd0;
+  --ink-3: #7d8ca6;
+  --accent: #2dd4bf;
+  --accent-soft: rgba(45, 212, 191, 0.12);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.12);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.15);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.15);
+  --ok: #34d399;
+  --ok-soft: rgba(52, 211, 153, 0.15);
+  --navy-950: #070d18;
 }
 
 html, body, #root { height: 100%; }
 body {
   margin: 0;
-  background: var(--color-canvas);
-  color: var(--color-navy-900);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  transition-property: background-color, color;
+  transition-duration: 250ms;
 }
-:focus-visible { outline: 2px solid var(--color-teal-brand); outline-offset: 2px; }
 
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.animate-rise { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
+body.no-transitions,
+body.no-transitions * {
+  transition-duration: 0s !important;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-rise {
+  animation: rise .45s cubic-bezier(.2,.7,.2,1) both;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--line) 25%, var(--surface-2) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+}
+.pulse-ring-danger {
+  animation: pulse-ring 1.8s ease-out 2;
+}
+
+@keyframes glow-vessel {
+  0%, 100% { box-shadow: 0 0 0 1px var(--accent); }
+  50% { box-shadow: 0 0 12px 2px var(--accent); }
+}
+.glow-accent {
+  animation: glow-vessel 2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-rise { animation: none; }
+  .skeleton { animation: none; }
+  .pulse-ring-danger { animation: none; }
+  .glow-accent { animation: none; }
   * { transition-duration: 0s !important; }
 }

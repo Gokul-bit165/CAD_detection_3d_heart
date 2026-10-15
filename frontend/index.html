@@ -9,8 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet" />
     <title>CardioVista</title>
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('cardiovista.theme');
+          var pref = saved || 'system';
+          var theme = pref === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref;
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.colorScheme = theme;
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body>
+  <body class="no-transitions">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
