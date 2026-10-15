@@ -1,10 +1,12 @@
-"""Adapter for the ML owner's artifacts (see docs/MODEL_INTEGRATION.md).
+"""Adapter for the trained CAD ensemble (see docs/MODEL_INTEGRATION.md).
+
+The artifacts come from cardml---cardiovascular-diesase-prediction/export_artifacts.py:
+an AUC-weighted ensemble of five model families (LR, KNN, RF, XGBoost, LightGBM) for each
+of Cath (overall CAD), LAD, LCX and RCA. Every member is a full imblearn pipeline that
+includes its own preprocessing, so no separate preprocessor file exists.
 
 Honest by construction: if any required artifact is missing, or loading fails, every
 prediction returns status="unavailable". It never falls back to fake numbers.
-
-NOTE: written against the artifact inventory in backend/model_artifacts/README.md and
-NOT yet exercised against real artifacts - verify once they exist.
 """
 from __future__ import annotations
 
@@ -14,26 +16,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..schemas.features import FEATURE_BY_NAME, FEATURES, FORBIDDEN_COLUMNS
-from ..schemas.prediction import (Explanation, FeatureContribution, ModelInfo,
-                                  PredictionResponse, TargetOutput)
+from ..schemas.features import FEATURE_BY_NAME, FORBIDDEN_COLUMNS, FEATURES
+from ..schemas.prediction import ModelInfo, PredictionResponse, TargetOutput
 from .base import PredictionProvider
 
 log = logging.getLogger("cardiovista.trained")
 
-MODEL_FILES = {
-    "CAD": "cad_overall_classifier.joblib",
-    "LAD": "lad_stenosis_model.joblib",
-    "LCX": "lcx_stenosis_model.joblib",
-    "RCA": "rca_stenosis_model.joblib",
-}
-PREPROCESSOR = "preprocessor_pipeline.joblib"
+BUNDLE = "ensemble_bundle.joblib"
 METADATA = "feature_metadata.json"
-EXPLAINER = "shap_explainer_cad.joblib"  # optional
-REQUIRED = [PREPROCESSOR, METADATA, *MODEL_FILES.values()]
+REQUIRED = [BUNDLE, METADATA]
+TARGET_OF = {"CAD": "Cath", "LAD": "LAD", "LCX": "LCX", "RCA": "RCA"}
 
-SEMANTICS = ("Model-estimated probability of the positive class (CAD / >=50% stenosis). "
-             "Calibration depends on the training pipeline and is not guaranteed.")
+SEMANTICS = ("Ensemble-averaged probability of the positive class (CAD / >=50% stenosis), thresholded at the "
+             "Youden operating point chosen on training out-of-fold predictions. Not a calibrated clinical risk; "
+             "LCX and RCA estimates are weak (held-out AUC about 0.65-0.75).")
+
+_ECG = ["Q Wave", "St Elevation", "St Depression", "Tinversion", "LVH", "Poor R Progression"]
+_YES = {"Y", "y", "Yes", "yes", "1", "true", "True"}
 
 
 class TrainedModelProvider(PredictionProvider):
@@ -45,7 +44,7 @@ class TrainedModelProvider(PredictionProvider):
         self._error: str | None = None
 
     def _found(self) -> list[str]:
-        return [f for f in [*REQUIRED, EXPLAINER] if (self.dir / f).is_file()]
+        return [f for f in REQUIRED if (self.dir / f).is_file()]
 
     def _missing(self) -> list[str]:
         return [f for f in REQUIRED if not (self.dir / f).is_file()]
@@ -58,16 +57,10 @@ class TrainedModelProvider(PredictionProvider):
         try:
             import joblib  # imported lazily: only needed when artifacts exist
             meta = json.loads((self.dir / METADATA).read_text(encoding="utf-8"))
-            bundle: dict[str, Any] = {
-                "meta": meta,
-                "pre": joblib.load(self.dir / PREPROCESSOR),
-                "models": {t: joblib.load(self.dir / f) for t, f in MODEL_FILES.items()},
-                "explainer": joblib.load(self.dir / EXPLAINER) if (self.dir / EXPLAINER).is_file() else None,
-            }
-            leaked = set(meta.get("feature_names", [])) & set(FORBIDDEN_COLUMNS)
+            leaked = set(meta.get("feature_names", [])) & (set(FORBIDDEN_COLUMNS) | {"Cath_original", "label_corrected", "n_vessels"})
             if leaked:
                 raise RuntimeError(f"artifact feature list contains target columns: {sorted(leaked)}")
-            self._loaded = bundle
+            self._loaded = {"meta": meta, "bundle": joblib.load(self.dir / BUNDLE)}
             self._error = None
         except Exception as exc:  # noqa: BLE001 - surfaced as 'unavailable'
             self._error = f"{type(exc).__name__}: {exc}"
@@ -81,15 +74,15 @@ class TrainedModelProvider(PredictionProvider):
 
     def info(self) -> ModelInfo:
         missing = self._missing()
-        bundle = self._load()
+        loaded = self._load()
         if missing:
             msg = "Trained model not connected - missing artifacts: " + ", ".join(missing)
-        elif bundle is None:
+        elif loaded is None:
             msg = f"Model artifacts found but could not be loaded ({self._error})."
         else:
-            msg = "Trained model artifacts loaded."
+            msg = "Trained ensemble loaded (LR, KNN, RF, XGBoost, LightGBM x CAD/LAD/LCX/RCA)."
         return ModelInfo(
-            provider=self.name, status="ready" if bundle else "unavailable",
+            provider=self.name, status="ready" if loaded else "unavailable",
             model_version=self._version(), message=msg, expected_artifacts=REQUIRED,
             found_artifacts=self._found(), excluded_inputs=list(FORBIDDEN_COLUMNS),
             feature_count=len(FEATURES))
@@ -99,56 +92,71 @@ class TrainedModelProvider(PredictionProvider):
                                   provider=self.name, message=reason, probability_semantics=SEMANTICS)
 
     def predict(self, features: dict[str, Any]) -> PredictionResponse:
-        bundle = self._load()
-        if bundle is None:
+        loaded = self._load()
+        if loaded is None:
             return self._unavailable(self.info().message)
         try:
             import pandas as pd
-            row = {n: _to_dataset_value(n, v) for n, v in features.items()}
-            order = bundle["meta"].get("feature_names") or list(row)
-            X = bundle["pre"].transform(pd.DataFrame([row])[order])
+            meta, bundle = loaded["meta"], loaded["bundle"]
+            row = build_model_row(features, meta)
+            X = pd.DataFrame([row])[meta["feature_names"]]
             outs: dict[str, TargetOutput] = {}
-            for t, model in bundle["models"].items():
-                p = float(model.predict_proba(X)[0][1])
-                pos = p >= 0.5
-                text = ("CAD", "Normal") if t == "CAD" else ("Stenosis", "Normal")
-                outs[t] = TargetOutput(target=t, label="Overall CAD" if t == "CAD" else t,
-                                       probability=round(p, 4),
-                                       predicted_class="positive" if pos else "negative",
-                                       class_text=text[0 if pos else 1])
+            for api, t in TARGET_OF.items():
+                w = bundle["weights"][t]
+                p = sum(w[m] * float(pipe.predict_proba(X)[0][1]) for m, pipe in bundle["models"][t].items())
+                thr = float(meta["thresholds"][t]["youden"])
+                pos = p >= thr
+                text = ("CAD", "Normal") if api == "CAD" else ("Stenosis", "Normal")
+                outs[api] = TargetOutput(
+                    target=api, label="Overall CAD" if api == "CAD" else api, probability=round(p, 4),
+                    predicted_class="positive" if pos else "negative", class_text=text[0 if pos else 1],
+                    threshold=round(thr, 4), reliability=meta.get("reliability", {}).get(api))
             return PredictionResponse(
                 status="ready", created_at=datetime.now(timezone.utc), provider=self.name,
                 model_version=self._version(), probability_semantics=SEMANTICS,
-                overall=outs["CAD"], vessels={k: outs[k] for k in ("LAD", "LCX", "RCA")},
-                explanation=self._explain(bundle, X, features))
+                overall=outs["CAD"], vessels={k: outs[k] for k in ("LAD", "LCX", "RCA")})
         except Exception as exc:  # noqa: BLE001
             log.error("Inference failed: %s", type(exc).__name__)  # no clinical values logged
             return self._unavailable(f"Inference failed ({type(exc).__name__}). See server log.")
 
-    @staticmethod
-    def _explain(bundle: dict[str, Any], X: Any, features: dict[str, Any]) -> Explanation | None:
-        explainer = bundle.get("explainer")
-        if explainer is None:
-            return None
-        try:
-            sv = explainer.shap_values(X)
-            vals = sv[1][0] if isinstance(sv, list) else sv[0]
-            if getattr(vals, "ndim", 1) == 2:  # (features, classes)
-                vals = vals[:, 1]
-            names = bundle["meta"].get("transformed_feature_names") or bundle["meta"].get("feature_names", [])
-            contribs = []
-            for n, c in zip(names, vals):
-                spec = FEATURE_BY_NAME.get(n)
-                contribs.append(FeatureContribution(
-                    feature=n, label=spec.label if spec else n, value=features.get(n),
-                    unit=spec.unit if spec else None, contribution=float(c)))
-            contribs.sort(key=lambda c: abs(c.contribution), reverse=True)
-            return Explanation(method="SHAP (TreeExplainer), overall CAD model",
-                               note="Contributions describe model behaviour, not causal effects.",
-                               contributions=contribs[:15])
-        except Exception as exc:  # noqa: BLE001
-            log.warning("Explanation failed: %s", type(exc).__name__)
-            return None
+
+def _is_yes(v: Any) -> int:
+    return int(v is True or str(v) in _YES)
+
+
+def build_model_row(features: dict[str, Any], meta: dict[str, Any]) -> dict[str, Any]:
+    """API values -> the cleaned + engineered columns the pipelines were trained on
+    (mirrors notebook 01: Y/N->1/0, Sex male=1, engineered ratios/counts, then fill blanks
+    with training medians *before* deriving the engineered columns)."""
+    names, fill = meta["feature_names"], meta["fill_values"]
+    raw: dict[str, Any] = {}
+    for n in names:
+        spec = FEATURE_BY_NAME.get(n)
+        v = _to_dataset_value(n, features[n]) if (n in features and features[n] is not None) else None
+        if v is None or spec is None:  # engineered columns, or a blank optional input
+            raw[n] = fill[n] if spec is not None else None
+        elif n == "Sex":
+            raw[n] = int(v == "Male")
+        elif spec.kind == "binary":
+            raw[n] = _is_yes(v)
+        elif spec.kind == "number" or n in ("Function Class", "Region RWMA"):
+            raw[n] = float(v) if spec.kind == "number" else int(v)
+        else:
+            raw[n] = str(v)
+    r = raw
+    r["CP_type"] = ("Typical" if r["Typical Chest Pain"] else "Atypical" if r["Atypical"]
+                    else "Nonanginal" if r["Nonanginal"] else "NoCP")
+    r["NLR"] = r["Neut"] / r["Lymph"]
+    r["TG_HDL"] = r["TG"] / r["HDL"]
+    r["LDL_HDL"] = r["LDL"] / r["HDL"]
+    r["pulse_pressure_proxy"] = r["BP"] / r["PR"]
+    r["risk_factor_count"] = sum(r[c] for c in ("DM", "HTN", "Current Smoker", "FH", "DLP", "Obesity"))
+    r["ecg_abnormal_count"] = sum(r[c] for c in _ECG) + int(r["BBB"] != "N")
+    age = r["Age"]
+    r["age_group"] = "<=45" if age <= 45 else "46-55" if age <= 55 else "56-65" if age <= 65 else ">65"
+    r["symptom_score"] = r["Typical Chest Pain"] * 2 + r["Atypical"] + r["Function Class"] + r["Dyspnea"]
+    r["ef_low"] = int(r["EF-TTE"] < 50)
+    return {n: r[n] for n in names}
 
 
 def _to_dataset_value(name: str, value: Any) -> Any:

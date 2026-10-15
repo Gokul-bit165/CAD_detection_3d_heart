@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
-  Activity, BarChart3, ClipboardList, HeartPulse, History, Info, LayoutDashboard, Menu, ShieldAlert, X,
+  Activity, BarChart3, ClipboardList, FileSpreadsheet, HeartPulse, History, Info, LayoutDashboard, Menu, ShieldAlert, X,
 } from 'lucide-react'
 import { useAppData } from './AppData'
 import { Badge, cx } from '../components/ui'
@@ -12,6 +12,7 @@ export const DISCLAIMER =
 const NAV = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/assessment', label: 'New Assessment', icon: ClipboardList },
+  { to: '/import', label: 'Excel Import', icon: FileSpreadsheet },
   { to: '/explorer', label: '3D Heart Explorer', icon: HeartPulse },
   { to: '/history', label: 'Prediction History', icon: History },
   { to: '/evaluation', label: 'Model Evaluation', icon: BarChart3 },
@@ -22,7 +23,6 @@ export function ModelStatusBadge() {
   const { apiOnline, modelInfo } = useAppData()
   if (apiOnline === null) return <Badge>Checking API…</Badge>
   if (!apiOnline) return <Badge tone="red">API offline</Badge>
-  if (modelInfo?.status === 'demo') return <Badge tone="amber">Research / Demo Mode</Badge>
   if (modelInfo?.status === 'ready') return <Badge tone="teal">Model ready</Badge>
   return <Badge tone="red">Model unavailable</Badge>
 }

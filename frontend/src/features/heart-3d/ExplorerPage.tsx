@@ -29,14 +29,14 @@ export default function ExplorerPage() {
       <div>
         <h2 className="font-display text-2xl font-semibold text-navy-900">3D Heart Explorer</h2>
         <p className="mt-1 text-sm text-navy-500">
-          Rotate, zoom and click an artery, or press the route button for a guided tour. Set demo damage scores below to see how each coronary artery looks at different severities — plaque grows, blood slows and the artery changes colour.
+          Rotate, zoom and click an artery, or press the route button for a guided tour. Set manual damage scores below to see how each coronary artery looks at different severities — plaque grows, blood slows and the artery changes colour.
         </p>
       </div>
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <HeartScene className="h-[480px] lg:h-[640px]" risks={scores} illustrative selected={selected} onSelect={setSelected} resetSignal={resetSignal} />
+        <HeartScene className="h-[480px] lg:h-[640px]" risks={scores} manual selected={selected} onSelect={setSelected} resetSignal={resetSignal} />
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Demo damage scores" subtitle="Drag a slider to simulate how severely each artery is affected" />
+            <CardHeader title="Manual damage scores" subtitle="Drag a slider to simulate how severely each artery is affected" />
             <div className="space-y-4 p-5">
               {VESSEL_IDS.map((id) => (
                 <div key={id}>

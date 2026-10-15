@@ -3,6 +3,7 @@ import { AppDataProvider } from './AppData'
 import AppShell from './AppShell'
 import OverviewPage from '../features/dashboard/OverviewPage'
 import AssessmentPage from '../features/patient-assessment/AssessmentPage'
+import ImportPage from '../features/import/ImportPage'
 import ExplorerPage from '../features/heart-3d/ExplorerPage'
 import ResultsPage from '../features/predictions/ResultsPage'
 import HistoryPage from '../features/history/HistoryPage'
@@ -18,6 +19,7 @@ export default function App() {
             <Route index element={<OverviewPage />} />
             <Route path="assessment" element={<AssessmentPage />} />
             <Route path="results/:id" element={<ResultsPage />} />
+            <Route path="import" element={<ImportPage />} />
             <Route path="explorer" element={<ExplorerPage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="evaluation" element={<EvaluationPage />} />

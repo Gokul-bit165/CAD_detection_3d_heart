@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AlertCircle, CheckCircle2, ClipboardList, Crosshair, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, ClipboardList, Crosshair, ShieldAlert } from 'lucide-react'
 import { Alert, Badge, Button, Card, Spinner, cx } from '../../components/ui'
 
 import { api, ApiError } from '../../services/api'
@@ -33,8 +33,10 @@ export default function ResultsPage() {
     return Object.fromEntries(VESSEL_IDS.map((v) => [v, data.vessels![v]?.probability ?? null]))
   }, [data])
 
-  const demo = data?.status === 'demo'
   const overallProb = data?.overall?.probability ?? 0
+  // Positive/negative is decided by the model's tuned threshold, not a fixed 0.5.
+  const thr = data?.overall?.threshold ?? 0.5
+  const tier: 'high' | 'low' = overallProb >= thr ? 'high' : 'low'
 
   return (
     <div className="space-y-5">
@@ -42,8 +44,8 @@ export default function ResultsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="font-mono text-xs font-semibold uppercase tracking-wider text-navy-500">Assessment Report</span>
-            <Badge tone={overallProb >= 0.7 ? 'red' : overallProb >= 0.5 ? 'amber' : 'teal'}>
-              {overallProb >= 0.7 ? 'Critical CAD Risk' : overallProb >= 0.5 ? 'Moderate CAD Risk' : 'Low CAD Risk'}
+            <Badge tone={tier === 'high' ? 'red' : 'teal'}>
+              {tier === 'high' ? 'CAD flagged' : 'CAD not flagged'}
             </Badge>
           </div>
           <h2 className="font-display text-2xl font-semibold text-navy-900">Diagnostic evaluation & 3D heart</h2>
@@ -63,40 +65,28 @@ export default function ResultsPage() {
       {/* Clinical Triage Recommendation Box */}
       {data && (
         <div className={cx('rounded-2xl border p-4 shadow-xs transition-all',
-          overallProb >= 0.7 ? 'border-red-200 bg-red-50/70 text-red-950' :
-          overallProb >= 0.5 ? 'border-amber-200 bg-amber-50/70 text-amber-950' :
+          tier === 'high' ? 'border-red-200 bg-red-50/70 text-red-950' :
           'border-teal-200 bg-teal-50/70 text-teal-950')}>
           <div className="flex items-start gap-3">
-            {overallProb >= 0.7 ? (
+            {tier === 'high' ? (
               <ShieldAlert className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-            ) : overallProb >= 0.5 ? (
-              <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             ) : (
               <CheckCircle2 className="h-5 w-5 text-teal-600 shrink-0 mt-0.5" />
             )}
             <div>
               <p className="font-semibold text-sm">
-                {overallProb >= 0.7 ? 'Clinical Triage: High Probability of Significant Coronary Stenosis' :
-                 overallProb >= 0.5 ? 'Clinical Triage: Intermediate Ischemic Probability' :
-                 'Clinical Triage: Low Pretest Probability of Obstructive CAD'}
+                {tier === 'high' ? 'Screening result: model flags probable coronary artery disease' : 'Screening result: model does not flag coronary artery disease'}
               </p>
               <p className="mt-0.5 text-xs opacity-90 leading-relaxed">
-                {overallProb >= 0.7
-                  ? 'Multi-vessel involvement likely. Consider urgent invasive coronary angiography (ICA) or high-resolution CCTA with cardiological consultation.'
-                  : overallProb >= 0.5
-                  ? 'Non-invasive anatomic testing (CCTA) or functional stress imaging recommended to rule out hemodynamically significant stenosis.'
-                  : 'Favorable non-invasive cardiovascular profile. Consider outpatient risk factor optimization and non-cardiac differential workup.'}
+                {tier === 'high'
+                  ? `Estimated probability ${(overallProb * 100).toFixed(0)}% is at or above the model's decision threshold (${(thr * 100).toFixed(0)}%). This is a screening estimate from clinical data only; confirm with a clinician and appropriate diagnostic testing.`
+                  : `Estimated probability ${(overallProb * 100).toFixed(0)}% is below the model's decision threshold (${(thr * 100).toFixed(0)}%). The model can miss CAD (about 9 in 100 CAD patients were missed on held-out data), so a negative result does not rule it out.`}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {demo && (
-        <Alert tone="warn" title="Simulated Prototype Demonstration">
-          {data?.message} Predictions are derived using verified clinical consensus formulas and anatomical risk weights.
-        </Alert>
-      )}
       {error && <Alert tone="error" title="Could not load this assessment">{error}</Alert>}
       {!data && !error && <Spinner label="Loading assessment" />}
       {data?.status === 'unavailable' && <Alert tone="error" title="Prediction unavailable">{data.message}</Alert>}
@@ -124,7 +114,7 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          <HeartScene className="h-[420px] lg:h-[530px]" risks={risks} illustrative={demo}
+          <HeartScene className="h-[420px] lg:h-[530px]" risks={risks}
             selected={selected} onSelect={setSelected} resetSignal={resetCount} />
         </div>
 

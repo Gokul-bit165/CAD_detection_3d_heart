@@ -11,6 +11,8 @@ from ..config import settings
 from ..schemas.prediction import PredictionResponse, PredictionSummary
 
 
+# Rows with status "demo" come from the removed placeholder provider (random values, not predictions).
+# They stay in old database files but are never listed or served.
 class PredictionStore:
     def __init__(self, path: str):
         p = settings.resolve(path)
@@ -40,15 +42,15 @@ class PredictionStore:
 
     def get(self, pid: str) -> PredictionResponse | None:
         with self._conn() as c:
-            row = c.execute("SELECT payload FROM predictions WHERE id=?", (pid,)).fetchone()
+            row = c.execute("SELECT payload FROM predictions WHERE id=? AND status != 'demo'", (pid,)).fetchone()
         return PredictionResponse.model_validate_json(row[0]) if row else None
 
     def list(self, limit: int = 100) -> list[PredictionSummary]:
         with self._conn() as c:
-            rows = c.execute("""SELECT id, created_at, status, provider, model_version FROM predictions
+            rows = c.execute("""SELECT id, created_at, status, provider, model_version FROM predictions WHERE status != 'demo'
                                 ORDER BY created_at DESC LIMIT ?""", (limit,)).fetchall()
         return [PredictionSummary(id=i, created_at=t, status=s, provider=p, model_version=m,
-                                  has_results=s in ("demo", "ready")) for i, t, s, p, m in rows]
+                                  has_results=s == "ready") for i, t, s, p, m in rows]
 
 
 @lru_cache

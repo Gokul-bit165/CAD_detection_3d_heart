@@ -12,7 +12,7 @@ DISCLAIMER = (
     "diagnosis and do not replace professional medical assessment or formal diagnostic imaging."
 )
 
-Status = Literal["demo", "ready", "unavailable"]
+Status = Literal["ready", "unavailable"]
 VesselId = Literal["LAD", "LCX", "RCA"]
 
 
@@ -34,7 +34,8 @@ class TargetOutput(BaseModel):
     probability: float | None = Field(default=None, ge=0, le=1)
     predicted_class: Literal["positive", "negative"] | None = None
     class_text: str | None = None  # e.g. "Stenosis" / "Normal" / "CAD"
-    illustrative: bool = False  # True => placeholder value, not derived from the patient
+    threshold: float | None = None  # decision threshold applied to `probability`
+    reliability: Literal["good", "moderate", "low"] | None = None  # held-out performance tier
 
 
 class FeatureContribution(BaseModel):
@@ -47,8 +48,7 @@ class FeatureContribution(BaseModel):
 
 
 class Explanation(BaseModel):
-    method: str  # e.g. "SHAP (TreeExplainer)" or "demo-placeholder"
-    illustrative: bool = False
+    method: str  # e.g. "SHAP (TreeExplainer)"
     note: str | None = None
     contributions: list[FeatureContribution] = []
 

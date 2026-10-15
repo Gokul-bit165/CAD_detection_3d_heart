@@ -1,5 +1,5 @@
 import type {
-  EvaluationResponse, FeatureSchema, FeatureValues, Health, ModelInfo, PredictionResponse,
+  EvaluationResponse, FeatureSchema, FeatureValues, Health, ImportResponse, ModelInfo, PredictionResponse,
   PredictionSummary,
 } from '../types/api'
 
@@ -22,7 +22,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${BASE}${path}`, {
       ...init,
-      headers: { 'Content-Type': 'application/json', ...init?.headers },
+      headers: init?.body instanceof FormData ? init?.headers : { 'Content-Type': 'application/json', ...init?.headers },
     })
   } catch {
     throw new ApiError('Cannot reach the CardioVista API. Is the backend running?', 0)
@@ -53,4 +53,10 @@ export const api = {
   listPredictions: () => request<PredictionSummary[]>('/predictions'),
   getPrediction: (id: string) => request<PredictionResponse>(`/predictions/${encodeURIComponent(id)}`),
   evaluation: () => request<EvaluationResponse>('/evaluation'),
+  importExcel: (file: File) => {
+    const body = new FormData()
+    body.append('file', file)
+    return request<ImportResponse>('/import/excel', { method: 'POST', body })
+  },
+  templateUrl: `${BASE}/import/template`,
 }

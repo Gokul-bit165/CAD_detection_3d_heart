@@ -1,5 +1,5 @@
 import { BrainCircuit } from 'lucide-react'
-import { Alert, Badge, Card, CardHeader, EmptyState } from '../../components/ui'
+import { Badge, Card, CardHeader, EmptyState } from '../../components/ui'
 import type { Explanation, FeatureValue } from '../../types/api'
 
 function fmt(v: FeatureValue, unit?: string | null) {
@@ -13,7 +13,7 @@ export default function ExplainabilityPanel({ explanation, modelVersion }: { exp
     <Card>
       <CardHeader title="Feature contributions"
         subtitle="Which measurements pushed the overall CAD output up or down"
-        action={explanation && <Badge tone={explanation.illustrative ? 'amber' : 'blue'}>{explanation.method}{modelVersion ? ` · ${modelVersion}` : ''}</Badge>} />
+        action={explanation && <Badge tone="blue">{explanation.method}{modelVersion ? ` · ${modelVersion}` : ''}</Badge>} />
       <div className="p-5">
         {!explanation || explanation.contributions.length === 0 ? (
           <EmptyState icon={<BrainCircuit className="h-8 w-8" />} title="No explanation available">
@@ -22,12 +22,9 @@ export default function ExplainabilityPanel({ explanation, modelVersion }: { exp
           </EmptyState>
         ) : (
           <>
-            {explanation.illustrative && (
-              <div className="mb-4"><Alert tone="warn" title="Illustrative layout data">{explanation.note} These are not this patient's real feature attributions.</Alert></div>
-            )}
             <Rows explanation={explanation} />
             <p className="mt-4 text-xs leading-relaxed text-navy-500">
-              {!explanation.illustrative && explanation.note} Positive values push the output toward the positive class (CAD),
+              {explanation.note} Positive values push the output toward the positive class (CAD),
               negative values toward normal. Contributions describe how the model behaved; they do not show that a feature
               causes disease.
             </p>

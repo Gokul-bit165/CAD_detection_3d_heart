@@ -4,12 +4,14 @@ Base URL: `http://localhost:8000/api/v1`. Interactive docs: `http://localhost:80
 
 | Method | Path | Purpose |
 | :--- | :--- | :--- |
-| GET | `/health` | Liveness, provider name, model status (`demo` / `ready` / `unavailable`) |
+| GET | `/health` | Liveness, provider name, model status (`ready` / `unavailable`) |
 | GET | `/model-info` | Provider, status, expected vs found artifacts, excluded inputs |
 | GET | `/features` | The verified input schema (drives the form) |
 | POST | `/predictions` | Validate inputs, run the provider, persist, return the result |
 | GET | `/predictions` | Saved prediction summaries (newest first) |
 | GET | `/predictions/{id}` | One saved result including its inputs |
+| POST | `/import/excel` | Parse + validate patient rows from an .xlsx (multipart `file`); nothing is predicted or stored |
+| GET | `/import/template` | Download the Excel template |
 | GET | `/evaluation` | Evaluation report if `eval_report.json` exists, else `available: false` |
 
 ## POST /predictions
@@ -27,28 +29,34 @@ Response (`PredictionResponse`):
 ```json
 {
   "id": "fb1e8c79f4ef",
-  "status": "demo",
-  "created_at": "2026-10-10T07:58:17Z",
-  "provider": "mock",
-  "model_version": "demo-mock",
-  "message": "DEMO: these outputs are random placeholders, not clinical predictions.",
-  "probability_semantics": "DEMO ONLY - …",
-  "overall": { "target": "CAD", "label": "Overall CAD", "probability": 0.84, "predicted_class": "positive", "class_text": "CAD", "illustrative": true },
-  "vessels": { "LAD": { "…": "same shape" }, "LCX": {}, "RCA": {} },
-  "explanation": { "method": "demo-placeholder", "illustrative": true, "note": "…", "contributions": [
-    { "feature": "Age", "label": "Age", "value": 58, "unit": "years", "contribution": 0.175, "target": "CAD" } ] },
+  "status": "ready",
+  "created_at": "2026-10-15T07:58:17Z",
+  "provider": "trained",
+  "model_version": "2026-10-15-ens5",
+  "probability_semantics": "Ensemble-averaged probability of the positive class …",
+  "overall": { "target": "CAD", "label": "Overall CAD", "probability": 0.86, "predicted_class": "positive", "class_text": "CAD", "threshold": 0.6351, "reliability": "good" },
+  "vessels": { "LAD": { "…": "same shape; reliability moderate" }, "LCX": { "reliability": "low" }, "RCA": { "reliability": "low" } },
+  "explanation": null,
   "inputs": { "…": "validated inputs incl. derived BMI" },
   "disclaimer": "This application is a research and educational prototype. …"
 }
 ```
 
+`predicted_class` applies the target's tuned `threshold` (Youden point from training out-of-fold predictions), not 0.5.
+`reliability` is the held-out performance tier of that target's model (`good` / `moderate` / `low`).
+
 Status semantics:
 
-- `demo` — mock provider. Values are random, `illustrative: true`, not derived from the inputs, and not probabilities.
-- `ready` — trained model. `probability` is the model's positive-class probability; calibration is whatever the pipeline provides.
+- `ready` — trained ensemble. `probability` is the weighted mean of five model families; it is not a calibrated clinical risk.
 - `unavailable` — no usable model. `overall`, `vessels`, `explanation` are `null`, `message` explains why, `id` is `null`, nothing is saved.
 
 `CAD` is always its own model output; it is never computed from the vessel values by the backend or the UI.
+
+## POST /import/excel
+
+Multipart upload of an `.xlsx` (max 5 MB, 500 patient rows). Returns `{ sheet, rows[], ignored_outcome_columns[], ignored_unknown_columns[], missing_columns[] }`.
+Each row is `{ row, features | null, errors[], outcomes | null }`: `features` are validated and API-encoded (send them to `POST /predictions`);
+`outcomes` holds Cath/LAD/LCX/RCA if the sheet has them, for scoring only (they are never part of `features`). 400 for non-.xlsx, 422 for unreadable files or sheets without patient headers.
 
 ## Evaluation report (`backend/model_artifacts/eval_report.json`)
 

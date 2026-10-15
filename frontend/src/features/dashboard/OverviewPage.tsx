@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ClipboardList, Database, HeartPulse, PlayCircle, PlugZap, Sparkles } from 'lucide-react'
+import { ArrowRight, ClipboardList, Database, FileSpreadsheet, HeartPulse, PlayCircle, PlugZap, Sparkles } from 'lucide-react'
 import { useAppData } from '../../app/AppData'
 import { ModelStatusBadge } from '../../app/AppShell'
 import { Alert, Badge, Button, Card, CardHeader, EmptyState } from '../../components/ui'
@@ -8,14 +8,6 @@ import { api } from '../../services/api'
 import type { PredictionSummary } from '../../types/api'
 import HeartScene from '../heart-3d/LazyHeartScene'
 
-
-
-const CASE_LABELS: Record<string, { title: string; tone: 'red' | 'amber' | 'teal'; tag: string }> = {
-  'cad-triple-vessel': { title: 'Severe Triple-Vessel CAD', tone: 'red', tag: 'High Risk' },
-  'cad-isolated-lad': { title: 'Critical LAD Stenosis', tone: 'red', tag: 'Anterior' },
-  'cad-rca-ischemia': { title: 'Isolated RCA Stenosis', tone: 'amber', tag: 'Inferior' },
-  'cad-low-risk-normal': { title: 'Low-Risk Non-Cardiac Chest Pain', tone: 'teal', tag: 'Normal' },
-}
 
 export function HistoryTable({ rows }: { rows: PredictionSummary[] }) {
   return (
@@ -32,20 +24,12 @@ export function HistoryTable({ rows }: { rows: PredictionSummary[] }) {
         </thead>
         <tbody>
           {rows.map((r) => {
-            const meta = CASE_LABELS[r.id]
             return (
               <tr key={r.id} className="border-t border-line hover:bg-canvas/70 transition-colors">
                 <td className="px-5 py-3 font-mono text-[13px] font-medium text-navy-900">{r.id}</td>
-                <td>
-                  {meta ? (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-navy-800 text-xs">{meta.title}</span>
-                      <Badge tone={meta.tone}>{meta.tag}</Badge>
-                    </div>
-                  ) : <span className="text-xs text-navy-500">Patient Assessment</span>}
-                </td>
+                <td className="text-xs text-navy-500">Patient assessment</td>
                 <td className="text-navy-700 text-xs">{new Date(r.created_at).toLocaleString()}</td>
-                <td><Badge tone={r.status === 'demo' ? 'amber' : r.status === 'ready' ? 'teal' : 'red'}>{r.status}</Badge></td>
+                <td><Badge tone={r.status === 'ready' ? 'teal' : 'red'}>{r.status}</Badge></td>
                 <td className="pr-5 text-right">
                   {r.has_results ? (
                     <Link className="inline-flex items-center gap-1 font-semibold text-blue-brand hover:underline text-xs" to={`/results/${r.id}`}>
@@ -72,42 +56,12 @@ function Stat({ icon, label, value, sub }: { icon: React.ReactNode; label: strin
   )
 }
 
-const PRESET_CASES = [
-  {
-    id: 'cad-triple-vessel',
-    title: 'Triple-Vessel Disease',
-    subtitle: '67y Male · Severe Ischemia',
-    badge: 'Critical (96%)',
-    tone: 'red' as const,
-    vessels: 'LAD 95% · LCX 91% · RCA 94%',
-    desc: 'Typical angina, EF 35%, ST elevation, DM, HTN',
-  },
-  {
-    id: 'cad-isolated-lad',
-    title: 'Isolated LAD Stenosis',
-    subtitle: '58y Male · Anterior Ischemia',
-    badge: 'High Risk (91%)',
-    tone: 'red' as const,
-    vessels: 'LAD 92% · LCX 21% · RCA 18%',
-    desc: 'RWMA, exertional angina, anterior lead changes',
-  },
-  {
-    id: 'cad-low-risk-normal',
-    title: 'Low-Risk / Normal',
-    subtitle: '41y Female · Atypical Pain',
-    badge: 'Normal (6%)',
-    tone: 'teal' as const,
-    vessels: 'All vessels < 10% risk',
-    desc: 'Non-anginal symptoms, EF 64%, normal ECG & labs',
-  },
-]
 
 export default function OverviewPage() {
   const { apiOnline, modelInfo } = useAppData()
   const [rows, setRows] = useState<PredictionSummary[] | null>(null)
   useEffect(() => { if (apiOnline) api.listPredictions().then(setRows).catch(() => setRows(null)) }, [apiOnline])
 
-  const demoRuns = rows?.filter((r) => r.status === 'demo').length ?? 0
   const modelRuns = rows?.filter((r) => r.status === 'ready').length ?? 0
 
   return (
@@ -126,43 +80,28 @@ export default function OverviewPage() {
       </div>
 
       {apiOnline === false && <Alert tone="error" title="Backend not reachable">Start the API (see README) — until then no assessments can be run.</Alert>}
-      {modelInfo?.status === 'demo' && <Alert tone="warn" title="Research / Demo Mode Active">Simulated clinical engine is running with verified risk heuristics and realistic SHAP feature attributions.</Alert>}
-
-      {/* Featured Clinical Scenarios */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-navy-700 flex items-center gap-2">
-            <HeartPulse className="h-4 w-4 text-rose-600" /> Interactive Case Studies (Instant 3D Preview)
-          </h3>
-          <span className="text-xs text-navy-500">Click to view 3D heart & SHAP attributions</span>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {PRESET_CASES.map((c) => (
-            <Link key={c.id} to={`/results/${c.id}`} className="group block">
-              <Card className="p-4 transition-all duration-200 hover:shadow-lg hover:border-navy-900/40 relative overflow-hidden h-full flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-semibold text-navy-900 group-hover:text-blue-brand text-sm transition-colors">{c.title}</span>
-                    <Badge tone={c.tone}>{c.badge}</Badge>
-                  </div>
-                  <p className="text-xs text-navy-500 mt-0.5">{c.subtitle}</p>
-                  <p className="mt-2 text-xs font-mono font-medium text-navy-700 bg-canvas px-2.5 py-1 rounded-md border border-line">{c.vessels}</p>
-                  <p className="mt-2 text-xs text-navy-500 line-clamp-2">{c.desc}</p>
-                </div>
-                <div className="mt-3 pt-3 border-t border-line/60 flex items-center justify-between text-xs font-semibold text-blue-brand group-hover:underline">
-                  <span>Open 3D Twin</span>
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          { to: '/assessment', icon: <ClipboardList className="h-5 w-5" />, title: 'Single patient', desc: 'Enter clinical features and get CAD and per-vessel estimates with the 3D heart.' },
+          { to: '/import', icon: <FileSpreadsheet className="h-5 w-5" />, title: 'Excel import', desc: 'Upload many patients at once, predict them all and score the results against known outcomes.' },
+          { to: '/evaluation', icon: <HeartPulse className="h-5 w-5" />, title: 'Model evaluation', desc: 'Held-out test performance of the ensemble: ROC curves, confusion matrices, per-vessel AUC.' },
+        ].map((c) => (
+          <Link key={c.to} to={c.to} className="group block">
+            <Card className="flex h-full flex-col justify-between p-4 transition-all hover:border-navy-900/40 hover:shadow-lg">
+              <div>
+                <div className="flex items-center gap-2 text-navy-900">{c.icon}<span className="text-sm font-semibold group-hover:text-blue-brand">{c.title}</span></div>
+                <p className="mt-2 text-xs leading-relaxed text-navy-500">{c.desc}</p>
+              </div>
+              <span className="mt-3 flex items-center gap-1 border-t border-line/60 pt-3 text-xs font-semibold text-blue-brand group-hover:underline">Open <ArrowRight className="h-3.5 w-3.5" /></span>
+            </Card>
+          </Link>
+        ))}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={<Database className="h-4 w-4" />} label="Recorded assessments" value={rows ? rows.length : '—'} sub="Stored securely on local database" />
-        <Stat icon={<PlayCircle className="h-4 w-4" />} label="Prediction runs" value={rows ? demoRuns + modelRuns : '—'} sub={rows ? `${demoRuns} simulated · ${modelRuns} trained model` : undefined} />
-        <Stat icon={<PlugZap className="h-4 w-4" />} label="Model engine" value={<ModelStatusBadge />} sub={modelInfo?.model_version ? `Version ${modelInfo.model_version}` : 'Clinical consensus engine'} />
+        <Stat icon={<PlayCircle className="h-4 w-4" />} label="Prediction runs" value={rows ? modelRuns : '—'} sub="Run with the trained ensemble" />
+        <Stat icon={<PlugZap className="h-4 w-4" />} label="Model engine" value={<ModelStatusBadge />} sub={modelInfo?.model_version ? `Version ${modelInfo.model_version}` : undefined} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
@@ -182,7 +121,7 @@ export default function OverviewPage() {
                   <div className="col-span-2"><dt className="text-navy-500 text-xs">Forbidden Leakage Targets</dt><dd className="font-medium text-navy-800 mt-0.5 font-mono text-xs">{modelInfo.excluded_inputs.slice(0, 4).join(', ')}</dd></div>
                 </dl>
                 <div className="flex items-center justify-between text-xs text-navy-600 pt-1">
-                  <span>Model Evaluation: <strong>CV 5-Fold Available</strong></span>
+                  <span>Held-out test evaluation available</span>
                   <Link to="/evaluation" className="font-semibold text-blue-brand underline">View ROC curves & metrics</Link>
                 </div>
               </>

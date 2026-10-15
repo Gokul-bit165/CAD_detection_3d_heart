@@ -11,10 +11,10 @@ stenosis from clinical data and show the outputs on an interactive 3D heart.
 | Part | State |
 | :--- | :--- |
 | React + R3F dashboard, assessment form, results workspace, history, evaluation page | Working |
-| FastAPI service, typed schemas, SQLite history, target-leakage enforcement | Working, 10 backend tests pass |
-| **Predictions** | **Demo only.** The mock provider returns random, clearly labelled placeholder values. No trained model is connected. |
-| Trained-model adapter | Written against `backend/model_artifacts/README.md`; **untested** until artifacts exist |
-| Explanations / evaluation | UI and contracts ready; show empty states until real data is supplied |
+| FastAPI service, typed schemas, SQLite history, target-leakage enforcement | Working, backend tests pass |
+| **Predictions** | **Real trained model.** AUC-weighted ensemble (LR, KNN, RF, XGBoost, LightGBM) for overall CAD, LAD, LCX and RCA, trained on the Z-Alizadeh Sani data. Held-out test AUC: CAD 0.93, LAD 0.80, LCX 0.75, RCA 0.66 (LCX/RCA are flagged low-confidence in the UI). |
+| Excel import | Upload many patients from .xlsx, predict them all, score against known outcomes. Test files: `docs/test_data/` |
+| Explanations / evaluation | Evaluation page shows real held-out test metrics. Per-patient feature contributions are not available for the ensemble (empty state) |
 | 3D heart | Realistic scan-based heart built in Blender (`frontend/public/models/heart-realistic.glb`) with separate branching LAD/LCX/RCA arteries. Per-artery score drives colour, plaque bulges and a travelling blood-pulse speed; animated camera fly-to, guided tour and ghost view. If the GLB is missing the app falls back to a procedural heart (valves + blood flow) |
 
 No accuracy, patient counts or other statistics are shown anywhere unless they come from real data.
@@ -56,14 +56,20 @@ cd frontend && npm run build            # type-check + production build
    example* fills invented test values; *Reset form* clears them.
 3. **Results** – 3D heart plus Overall CAD, LAD, LCX, RCA cards. Click a vessel on the heart or its card; both stay in sync.
    Below: feature contributions and the submitted inputs.
-4. **3D Heart Explorer** – guided tour, inside view (valves + blood flow) and sliders to simulate each artery's damage score.
+4. **3D Heart Explorer** – guided tour, inside view (valves + blood flow) and sliders to set each artery's damage score by hand (not a prediction).
 5. **Prediction History**, **Model Evaluation**, **Settings / About**.
 
-### Demo mode
+### Excel import and testing the model
 
-`PREDICTION_PROVIDER=mock` (default). Every result carries `status: "demo"`, an on-canvas **DEMO VALUES** tag and a banner.
-Values are random and unrelated to the entered measurements; the "feature contributions" in demo mode are random too and are
-flagged *illustrative*.
+**Excel Import** (sidebar) takes an .xlsx with the dataset column names in the header. Download the template from the page, or
+use the ready-made files in `docs/test_data/`:
+
+- `cardiovista_test_patients.xlsx` – the 61 held-out test patients (never used for training or tuning) with their true
+  angiography results. After *Predict*, the page scores the model on them: expected CAD accuracy 0.89, sensitivity 0.91,
+  specificity 0.82, ROC-AUC 0.93. The true-outcome columns are never given to the model.
+- `cardiovista_edge_cases.xlsx` – rows that exercise validation (out-of-range age, missing weight, unknown categories) and blank handling.
+
+Regenerate both with `python cardml---cardiovascular-diesase-prediction/make_test_workbooks.py`.
 
 ### Connecting the real model
 
@@ -89,7 +95,7 @@ Details and file formats: [docs/MODEL_INTEGRATION.md](docs/MODEL_INTEGRATION.md)
 ## Layout
 
 ```
-backend/app/      api/ (routes) · schemas/ (features, prediction, evaluation) · predictors/ (mock, trained, registry) · database/
+backend/app/      api/ (routes) · schemas/ (features, prediction, evaluation) · predictors/ (trained, registry) · importing/ (Excel) · database/
 backend/tests/    pytest suite
 backend/model_artifacts/   drop trained artifacts here
 frontend/src/     app/ (shell, routing, app data) · components/ui · features/{dashboard,patient-assessment,heart-3d,predictions,

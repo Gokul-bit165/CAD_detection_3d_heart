@@ -4,6 +4,20 @@ import { Badge, Card, cx } from '../../components/ui'
 import type { TargetOutput, VesselId } from '../../types/api'
 import { VESSELS, VESSEL_IDS } from '../heart-3d/vesselConfig'
 
+const RELIABILITY = {
+  good: { tone: 'teal', label: 'Reliable' },
+  moderate: { tone: 'amber', label: 'Moderate confidence' },
+  low: { tone: 'red', label: 'Low confidence' },
+} as const
+
+export function ReliabilityBadge({ level }: { level?: TargetOutput['reliability'] }) {
+  if (!level) return null
+  const r = RELIABILITY[level]
+  return <Badge tone={r.tone}>{r.label}</Badge>
+}
+
+const LOW_NOTE = 'This vessel model is only weakly better than chance on held-out patients (AUC about 0.65-0.75). Treat the output as a hint, not a finding.'
+
 export function ProbabilityBar({ p, className }: { p: number | null; className?: string }) {
   // Animate from 0 on mount / when the value changes.
   const [w, setW] = useState(0)
@@ -21,7 +35,6 @@ export function OverallCard({ out }: { out: TargetOutput | null }) {
     <Card className="animate-rise p-5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wider text-navy-500">Overall CAD</p>
-        {out?.illustrative && <Badge tone="amber">Demo value</Badge>}
       </div>
       {out ? (
         <>
@@ -30,6 +43,7 @@ export function OverallCard({ out }: { out: TargetOutput | null }) {
             <span className="text-sm font-medium text-navy-700">{out.class_text ?? '—'}</span>
           </div>
           <ProbabilityBar p={out.probability} className="mt-3" />
+          {out.threshold != null && <p className="mt-2 text-xs text-navy-500">Positive at or above {pct(out.threshold)} (tuned operating point).</p>}
         </>
       ) : <p className="mt-2 text-sm text-navy-500">No output available.</p>}
     </Card>
@@ -53,7 +67,7 @@ export function VesselCards({ vessels, selected, onSelect }: {
               <span className="h-2.5 w-2.5 rounded-full" style={{ background: out?.probability != null ? riskColor(out.probability) : '#cbd5e1' }} />
             </div>
             <div className="mt-1 text-2xl font-semibold text-navy-900">{pct(out?.probability)}</div>
-            <div className="text-xs text-navy-500">{out?.class_text ?? 'No output'}</div>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs text-navy-500"><span>{out?.class_text ?? 'No output'}</span><ReliabilityBadge level={out?.reliability} /></div>
             <ProbabilityBar p={out?.probability ?? null} className="mt-2" />
           </button>
         )
@@ -78,12 +92,14 @@ export function VesselDetail({ id, out, semantics }: { id: VesselId | null; out:
           <h3 className="text-base font-semibold text-navy-900">{v.name} — {v.fullName}</h3>
           <p className="mt-0.5 text-[13px] text-navy-500">{v.territory}</p>
         </div>
-        {out?.illustrative && <Badge tone="amber">Demo value</Badge>}
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div><dt className="text-xs text-navy-500">Output</dt><dd className="font-semibold">{pct(out?.probability)}</dd></div>
         <div><dt className="text-xs text-navy-500">Predicted class</dt><dd className="font-semibold">{out?.class_text ?? '—'}</dd></div>
+        {out?.threshold != null && <div><dt className="text-xs text-navy-500">Decision threshold</dt><dd className="font-semibold">{pct(out.threshold)}</dd></div>}
+        {out?.reliability && <div><dt className="text-xs text-navy-500">Model reliability</dt><dd><ReliabilityBadge level={out.reliability} /></dd></div>}
       </dl>
+      {out?.reliability === 'low' && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{LOW_NOTE}</p>}
       <p className="mt-4 rounded-lg bg-canvas p-3 text-xs leading-relaxed text-navy-500">
         {semantics} The vessel colour on the 3D heart reflects this model output only; it does not show where a lesion is, and the
         dataset contains no patient-specific 3D lesion geometry.

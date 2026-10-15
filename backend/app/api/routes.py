@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from ..config import settings
 from ..database.store import get_store
+from ..importing.excel import MAX_BYTES, ImportFileError, parse_workbook, template_bytes
 from ..predictors.registry import get_provider
 from ..schemas.evaluation import EvaluationReport, EvaluationResponse
 from ..schemas.features import (FEATURES, FORBIDDEN_COLUMNS, GROUP_LABELS, UNSUPPORTED_GROUPS,
@@ -52,6 +54,39 @@ def create_prediction(req: PredictionRequest) -> PredictionResponse:
         return result  # not persisted: nothing to inspect later
     result.inputs = req.features
     return get_store().save(result)
+
+
+class ImportRow(BaseModel):
+    row: int  # Excel row number
+    features: dict | None = None  # validated, API-encoded; None when `errors` is non-empty
+    errors: list[str] = []
+    outcomes: dict[str, bool] | None = None  # known angiography result per target, for scoring only
+
+
+class ImportResponse(BaseModel):
+    sheet: str
+    rows: list[ImportRow]
+    ignored_outcome_columns: list[str]
+    ignored_unknown_columns: list[str]
+    missing_columns: list[str]
+
+
+@router.post("/import/excel", response_model=ImportResponse)
+async def import_excel(file: UploadFile = File(...)) -> ImportResponse:
+    """Parse + validate patient rows from an .xlsx. Nothing is predicted or stored here."""
+    if not (file.filename or "").lower().endswith(".xlsx"):
+        raise HTTPException(400, "Only .xlsx workbooks are supported.")
+    data = await file.read(MAX_BYTES + 1)
+    try:
+        return ImportResponse(**parse_workbook(data))
+    except ImportFileError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.get("/import/template")
+def import_template() -> Response:
+    return Response(template_bytes(), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": 'attachment; filename="cardiovista_patient_template.xlsx"'})
 
 
 @router.get("/predictions", response_model=list[PredictionSummary])

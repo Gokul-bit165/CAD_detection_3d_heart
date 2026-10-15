@@ -15,8 +15,8 @@ import { MODEL_ATTRIBUTION, VESSEL_IDS } from './vesselConfig'
 export interface HeartSceneProps {
   /** Vessel probabilities (0-1). Omit/null = no prediction: neutral anatomy. */
   risks?: Risks
-  /** True when `risks` are demo placeholders: shows an on-canvas DEMO tag. */
-  illustrative?: boolean
+  /** True when `risks` are hand-set scores (3D explorer), not a model prediction: shows an on-canvas tag. */
+  manual?: boolean
   selected: VesselId | null
   onSelect: (id: VesselId | null) => void
   /** Compact preview: no toolbar/legend/labels. */
@@ -116,7 +116,7 @@ const TOUR: { label: string; view: string | VesselId }[] = [
 ]
 const STEP_MS = 3800
 
-export default function HeartScene({ risks, illustrative, selected, onSelect, compact, className, resetSignal }: HeartSceneProps) {
+export default function HeartScene({ risks, manual, selected, onSelect, compact, className, resetSignal }: HeartSceneProps) {
   const controls = useRef<OrbitControlsImpl>(null)
   const [rotate, setRotate] = useState(true)
   const [beat, setBeat] = useState(true)
@@ -184,8 +184,8 @@ export default function HeartScene({ risks, illustrative, selected, onSelect, co
           {tour != null ? `Tour ${tour + 1}/${TOUR.length}: ${TOUR[tour].label}` : xray ? (focus ? 'Ghost view · arteries seen through the heart' : 'Inside view · valves & blood flow') : 'Anatomical heart · LAD · LCX · RCA'}
         </span>
       )}
-      {illustrative && anyRisk && (
-        <span className="absolute right-3 top-3 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold tracking-wide text-white">DEMO VALUES</span>
+      {manual && anyRisk && (
+        <span className="absolute right-3 top-3 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold tracking-wide text-white">MANUAL SCORES</span>
       )}
 
       {!compact && (
@@ -205,7 +205,7 @@ export default function HeartScene({ risks, illustrative, selected, onSelect, co
           </div>
           <div className="pointer-events-none absolute bottom-3 left-3 space-y-1.5 rounded-lg bg-white/90 px-3 py-2 text-[11px] text-navy-500 shadow-sm ring-1 ring-line">
             <div>
-              <div className="mb-1 font-medium text-navy-700">{anyRisk ? (illustrative ? 'Demo damage score' : 'Predicted stenosis probability') : 'No prediction loaded'}</div>
+              <div className="mb-1 font-medium text-navy-700">{anyRisk ? (manual ? 'Manual damage score' : 'Predicted stenosis probability') : 'No prediction loaded'}</div>
               <div className="h-2 w-36 rounded-full" style={{ background: riskGradientCss }} />
               <div className="mt-0.5 flex justify-between"><span>0%</span><span>100%</span></div>
             </div>

@@ -1,4 +1,4 @@
-export type Status = 'demo' | 'ready' | 'unavailable'
+export type Status = 'ready' | 'unavailable'
 export type VesselId = 'LAD' | 'LCX' | 'RCA'
 export type TargetId = 'CAD' | VesselId
 
@@ -40,7 +40,10 @@ export interface TargetOutput {
   probability: number | null
   predicted_class: 'positive' | 'negative' | null
   class_text: string | null
-  illustrative: boolean
+  /** Decision threshold applied to `probability` (trained model only). */
+  threshold?: number | null
+  /** Held-out performance tier of this target's model. */
+  reliability?: 'good' | 'moderate' | 'low' | null
 }
 
 export interface FeatureContribution {
@@ -54,7 +57,6 @@ export interface FeatureContribution {
 
 export interface Explanation {
   method: string
-  illustrative: boolean
   note?: string | null
   contributions: FeatureContribution[]
 }
@@ -118,4 +120,19 @@ export interface EvaluationResponse {
     generated_at?: string | null
     targets: Partial<Record<TargetId, TargetEvaluation>>
   } | null
+}
+
+export interface ImportRow {
+  row: number
+  features: FeatureValues | null
+  errors: string[]
+  /** Known angiography results from the sheet (true = positive). Used only to score predictions. */
+  outcomes?: Partial<Record<'Cath' | 'LAD' | 'LCX' | 'RCA', boolean>> | null
+}
+export interface ImportResponse {
+  sheet: string
+  rows: ImportRow[]
+  ignored_outcome_columns: string[]
+  ignored_unknown_columns: string[]
+  missing_columns: string[]
 }

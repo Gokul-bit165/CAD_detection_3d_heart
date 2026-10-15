@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, FlaskConical, RotateCcw, Send, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, FlaskConical, RotateCcw, Send } from 'lucide-react'
 import { useAppData } from '../../app/AppData'
-import { Alert, Badge, Button, Card, Spinner, cx } from '../../components/ui'
+import { Alert, Badge, Button, Card, Spinner } from '../../components/ui'
 import { api, ApiError } from '../../services/api'
 import type { FeatureSpec, FeatureValue, FeatureValues } from '../../types/api'
 import { displayValue } from '../predictions/InputSummary'
 import FieldControl from './FieldControl'
-import { bmiOf, defaults, EXAMPLE_VALUES, CLINICAL_PRESETS, toPayload, validateField } from './validation'
+import { bmiOf, defaults, EXAMPLE_VALUES, toPayload, validateField } from './validation'
 
 const STORAGE_KEY = 'cardiovista.assessment.draft'
 
@@ -17,7 +17,7 @@ function loadDraft(): FeatureValues | null {
 function saveDraft(v: FeatureValues) { try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(v)) } catch { /* private mode */ } }
 
 export default function AssessmentPage() {
-  const { schema, schemaError, apiOnline, modelInfo } = useAppData()
+  const { schema, schemaError, apiOnline } = useAppData()
   const navigate = useNavigate()
   const [values, setValues] = useState<FeatureValues | null>(null)
   const [step, setStep] = useState(0)
@@ -25,7 +25,6 @@ export default function AssessmentPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<{ message: string; problems: string[] } | null>(null)
   const [isExample, setIsExample] = useState(false)
-  const [activePreset, setActivePreset] = useState<string | null>(null)
 
   useEffect(() => {
     if (schema && !values) setValues({ ...defaults(schema), ...(loadDraft() ?? {}) })
@@ -40,7 +39,7 @@ export default function AssessmentPage() {
   if (!schema || !values) return <Spinner label="Loading form" />
 
   const bmi = bmiOf(values)
-  const set = (name: string, v: FeatureValue) => { setValues({ ...values, [name]: v }); setIsExample(false); setActivePreset(null) }
+  const set = (name: string, v: FeatureValue) => { setValues({ ...values, [name]: v }); setIsExample(false) }
   const touch = (name: string) => setTouched((t) => new Set(t).add(name))
   const issueOf = (f: FeatureSpec) => validateField(f, values[f.name])
   const stepErrors = (g: string) => schema.features.filter((f) => f.group === g && issueOf(f)?.level === 'error')
@@ -52,19 +51,8 @@ export default function AssessmentPage() {
     if (errs.length) { setTouched((t) => new Set([...t, ...errs.map((e) => e.name)])); return }
     setStep(step + 1)
   }
-  const reset = () => { setValues(defaults(schema)); setTouched(new Set()); setStep(0); setError(null); setIsExample(false); setActivePreset(null) }
-  const loadExample = () => { setValues({ ...defaults(schema), ...EXAMPLE_VALUES }); setIsExample(true); setActivePreset(null); setError(null) }
-  const loadPreset = (presetId: string) => {
-    const p = CLINICAL_PRESETS.find((c) => c.id === presetId)
-    if (!p) return
-    setValues({ ...defaults(schema), ...p.values })
-    setActivePreset(presetId)
-    setIsExample(false)
-    setError(null)
-  }
-
-  const selectedPresetObj = CLINICAL_PRESETS.find((c) => c.id === activePreset)
-
+  const reset = () => { setValues(defaults(schema)); setTouched(new Set()); setStep(0); setError(null); setIsExample(false) }
+  const loadExample = () => { setValues({ ...defaults(schema), ...EXAMPLE_VALUES }); setIsExample(true); setError(null) }
   const submit = async () => {
     if (allErrors.length) { setTouched(new Set(allErrors.map((e) => e.name))); setStep(groups.findIndex(([g]) => g === allErrors[0].group)); return }
     setSubmitting(true); setError(null)
@@ -89,42 +77,11 @@ export default function AssessmentPage() {
           </p>
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={loadExample}><FlaskConical className="h-4 w-4" /> Load synthetic example</Button>
+          <Button variant="secondary" onClick={loadExample}><FlaskConical className="h-4 w-4" /> Load example values</Button>
           <Button variant="ghost" onClick={reset}><RotateCcw className="h-4 w-4" /> Reset form</Button>
         </div>
       </div>
 
-      {/* Interactive Clinical Preset Pills */}
-      <div className="rounded-2xl border border-line bg-white/90 p-3 shadow-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-navy-500 mr-1">
-            <Sparkles className="h-3.5 w-3.5 text-teal-600" /> Clinical Scenarios:
-          </span>
-          {CLINICAL_PRESETS.map((p) => {
-            const active = activePreset === p.id
-            return (
-              <button key={p.id} type="button" onClick={() => loadPreset(p.id)}
-                className={cx('inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-medium transition-all',
-                  active ? 'bg-navy-900 text-white shadow-xs ring-1 ring-navy-900' : 'bg-canvas hover:bg-navy-900/5 text-navy-700 border border-line')}>
-                <span>{p.name}</span>
-                <span className={cx('text-[10px] px-1.5 py-0.5 rounded-full font-semibold',
-                  p.id === 'triple-vessel' ? (active ? 'bg-red-500 text-white' : 'bg-red-100 text-red-800') :
-                  p.id === 'isolated-lad' ? (active ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800') :
-                  (active ? 'bg-teal-500 text-white' : 'bg-teal-soft text-teal-800'))}>
-                  {p.tag}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-        {selectedPresetObj && (
-          <p className="mt-2 text-xs text-navy-600 bg-canvas/70 px-3 py-1.5 rounded-lg border border-line/60">
-            <strong>Loaded profile:</strong> {selectedPresetObj.description}
-          </p>
-        )}
-      </div>
-
-      {modelInfo?.status === 'demo' && <Alert tone="warn" title="Research / Demo Mode">No trained model weights are connected. Submitting returns verified cardiovascular simulated outputs.</Alert>}
       {isExample && <Alert tone="info" title="Synthetic example loaded">These values are invented for testing and do not describe a real patient.</Alert>}
 
       <nav aria-label="Assessment steps" className="flex gap-1 overflow-x-auto pb-1">
