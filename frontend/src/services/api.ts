@@ -75,10 +75,25 @@ export const api = {
     return request<ImportResponse>('/import/excel', { method: 'POST', body })
   },
 
-  importFile: (file: File) => {
+  importFile: async (file: File) => {
+    const isXlsx = file.name.toLowerCase().endsWith('.xlsx')
     const body = new FormData()
     body.append('file', file)
-    return request<ImportResponse>('/import/file', { method: 'POST', body })
+    try {
+      return await request<ImportResponse>('/import/file', { method: 'POST', body })
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        if (isXlsx) {
+          // Graceful fallback to /import/excel while backend /import/file is in development
+          return await request<ImportResponse>('/import/excel', { method: 'POST', body })
+        }
+        throw new ApiError(
+          'The backend endpoint POST /api/v1/import/file has not been added to routes.py yet. For now, please upload an .xlsx workbook or add the endpoint on the backend.',
+          404
+        )
+      }
+      throw err
+    }
   },
 
   templateUrl: `${BASE}/import/template`,
